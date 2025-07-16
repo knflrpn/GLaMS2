@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SwiCC Controller Display</title>
+	<style>
+		body {
+			font-family: 'Courier New', monospace;
+			background: #1a1a1a;
+			color: #ffffff;
+			padding: 20px;
+			margin: 0;
+		}
+
+		.container {
+			max-width: 900px;
+			margin: 0 auto;
+			background: #2d2d2d;
+			border-radius: 10px;
+			padding: 20px;
+			border: 1px solid #444;
+		}
+
+		.header {
+			text-align: center;
+			margin-bottom: 20px;
+			padding-bottom: 15px;
+			border-bottom: 1px solid #444;
+		}
+
+		.status {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 10px;
+			margin-bottom: 15px;
+		}
+
+		.status-dot {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #ff4444;
+			transition: background 0.3s ease;
+		}
+
+		.status-dot.connected {
+			background: #44ff44;
+		}
+
+		.info-line {
+			margin: 5px 0;
+			color: #aaa;
+		}
+
+		.data-section {
+			margin: 20px 0;
+			padding: 15px;
+			background: #1a1a1a;
+			border-radius: 8px;
+			border-left: 4px solid #4fd1c7;
+		}
+
+		.data-section h3 {
+			color: #4fd1c7;
+			margin-bottom: 10px;
+			font-size: 1.2rem;
+		}
+
+		.data-content {
+			white-space: pre-wrap;
+			font-size: 0.9rem;
+			line-height: 1.4;
+			color: #ccc;
+		}
+
+		.no-data {
+			text-align: center;
+			color: #666;
+			font-style: italic;
+			padding: 40px;
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>🎮 SwiCC Controller Display</h1>
+			<div class="status">
+				<div class="status-dot" id="statusDot"></div>
+				<span id="statusText">Waiting for connection...</span>
+			</div>
+			<div class="info-line">Channel: <span id="channelName">swicc-controller</span></div>
+			<div class="info-line">Rate: <span id="messageRate">0</span> msg/s | Sources: <span
+					id="activeSources">0</span></div>
+			<div class="info-line">Last Update: <span id="lastUpdate">Never</span></div>
+		</div>
+
+		<div id="dataDisplay">
+			<div class="no-data">No controller data received yet</div>
+		</div>
+	</div>
+
+	<script src="./src/utils/ControllerDisplayFuncs.js"></script>
+	<script>
+		// Initialize the controller display
+		const display = new ControllerDisplay();
+
+		// Get DOM elements
+		const statusDot = document.getElementById('statusDot');
+		const statusText = document.getElementById('statusText');
+		const channelName = document.getElementById('channelName');
+		const messageRate = document.getElementById('messageRate');
+		const activeSources = document.getElementById('activeSources');
+		const lastUpdate = document.getElementById('lastUpdate');
+		const dataDisplay = document.getElementById('dataDisplay');
+
+		// Set up event handlers
+		display.onStateUpdate = (dataType, state, allStates) => {
+			updateDataDisplay(allStates);
+		};
+
+		display.onConnectionChange = (connected) => {
+			statusDot.classList.toggle('connected', connected);
+			statusText.textContent = connected ? 'Connected' : 'Disconnected';
+
+			if (!connected) {
+				dataDisplay.innerHTML = '<div class="no-data">Connection lost</div>';
+			}
+		};
+
+		display.onStatsUpdate = (stats) => {
+			messageRate.textContent = stats.messageRate;
+			activeSources.textContent = stats.activeSources.length;
+
+			if (stats.timeSinceLastUpdate < 1000) {
+				lastUpdate.textContent = 'Just now';
+			} else if (stats.timeSinceLastUpdate < 60000) {
+				lastUpdate.textContent = `${Math.floor(stats.timeSinceLastUpdate / 1000)}s ago`;
+			} else {
+				lastUpdate.textContent = 'Over a minute ago';
+			}
+		};
+
+		display.onControlMessage = (subType, dataType) => {
+			console.log(`Control: ${subType} for ${dataType}`);
+		};
+
+		function updateDataDisplay(allStates) {
+			const stateKeys = Object.keys(allStates);
+
+			if (stateKeys.length === 0) {
+				dataDisplay.innerHTML = '<div class="no-data">No data available</div>';
+				return;
+			}
+
+			let html = '';
+
+			stateKeys.forEach(dataType => {
+				const state = allStates[dataType];
+				html += `
+                    <div class="data-section">
+                        <h3>${dataType.toUpperCase()}</h3>
+                        <div class="data-content">${formatState(state)}</div>
+                    </div>
+                `;
+			});
+
+			dataDisplay.innerHTML = html;
+		}
+
+		function formatState(state) {
+			let output = '';
+
+			// Digital buttons
+			if (state.digital && Object.keys(state.digital).length > 0) {
+				output += 'DIGITAL BUTTONS:\n';
+				for (const [button, pressed] of Object.entries(state.digital)) {
+					if (pressed) {
+						output += `  ${button}: ${pressed ? 'PRESSED' : 'released'}\n`;
+					}
+				}
+				output += '\n';
+			}
+
+			// Analog inputs
+			if (state.analog && Object.keys(state.analog).length > 0) {
+				output += 'ANALOG INPUTS:\n';
+				for (const [input, value] of Object.entries(state.analog)) {
+					if (value !== 0) {
+						output += `  ${input}: ${typeof value === 'number' ? value.toFixed(3) : value}\n`;
+					}
+				}
+				output += '\n';
+			}
+
+			// IMU data
+			if (state.imuSamples && state.imuSamples.length > 0) {
+				output += `IMU SAMPLES (${state.imuSamples.length}):\n`;
+				state.imuSamples.slice(0, 3).forEach((sample, i) => {
+					output += `  [${i}] accel: (${sample.accelX?.toFixed(2)}, ${sample.accelY?.toFixed(2)}, ${sample.accelZ?.toFixed(2)})\n`;
+					output += `      gyro:  (${sample.gyroX?.toFixed(2)}, ${sample.gyroY?.toFixed(2)}, ${sample.gyroZ?.toFixed(2)})\n`;
+				});
+				if (state.imuSamples.length > 3) {
+					output += `  ... and ${state.imuSamples.length - 3} more samples\n`;
+				}
+			}
+
+			return output || 'No active inputs detected';
+		}
+
+		// Update channel name display
+		channelName.textContent = display.channelName;
+
+		// Make display available globally for debugging
+		window.controllerDisplay = display;
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SwiCC Controller</title>
+	<link rel="stylesheet" href="style.css?1">
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>GLaMS</h1>
+			<p>Gamepad Listen and Manipulate System for SwiCC</p>
+		</div>
+
+		<div class="main-content">
+			<div class="left stack">
+				<!-- Connection Panel -->
+				<div class="panel">
+					<h2>
+						<span class="status-indicator" id="serialStatus"></span>
+						SwiCC Connections
+						<div class="status-item" style="margin-left:auto;">
+							<label>Connected SwiCCs</label>
+							<div class="value" id="connectedCount">0</div>
+						</div>
+					</h2>
+
+					<!-- Primary SwiCC Connection -->
+					<div class="swicc-connection" data-swicc-id="0">
+						<div class="swicc-header">
+							<h3>SwiCC #1</h3>
+							<span class="swicc-status" id="swiccStatus0">Disconnected</span>
+						</div>
+						<div class="swicc-controls">
+							<button class="button" id="connectBtn0">
+								Connect
+							</button>
+							<button class="button danger" id="disconnectBtn0" disabled>
+								Disconnect
+							</button>
+						</div>
+					</div>
+
+					<!-- Add More SwiCCs Button -->
+					<div class="add-more-section">
+						<button class="button secondary" id="addMoreSwiCCsBtn">
+							Add More SwiCCs
+						</button>
+					</div>
+
+					<!-- Additional SwiCC Connections (Initially Hidden) -->
+					<div class="additional-swiccs" id="additionalSwiCCs" style="display: none;">
+						<div class="swicc-connection" data-swicc-id="1">
+							<div class="swicc-header">
+								<h3>SwiCC #2</h3>
+								<span class="swicc-status" id="swiccStatus1">Disconnected</span>
+							</div>
+							<div class="swicc-controls">
+								<button class="button" id="connectBtn1">
+									Connect
+								</button>
+								<button class="button danger" id="disconnectBtn1" disabled>
+									Disconnect
+								</button>
+							</div>
+						</div>
+
+						<div class="swicc-connection" data-swicc-id="2">
+							<div class="swicc-header">
+								<h3>SwiCC #3</h3>
+								<span class="swicc-status" id="swiccStatus2">Disconnected</span>
+							</div>
+							<div class="swicc-controls">
+								<button class="button" id="connectBtn2">
+									Connect
+								</button>
+								<button class="button danger" id="disconnectBtn2" disabled>
+									Disconnect
+								</button>
+							</div>
+						</div>
+
+						<div class="swicc-connection" data-swicc-id="3">
+							<div class="swicc-header">
+								<h3>SwiCC #4</h3>
+								<span class="swicc-status" id="swiccStatus3">Disconnected</span>
+							</div>
+							<div class="swicc-controls">
+								<button class="button" id="connectBtn3">
+									Connect
+								</button>
+								<button class="button danger" id="disconnectBtn3" disabled>
+									Disconnect
+								</button>
+							</div>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="panel">
+					<div class="config-header" id="configHeader">
+						<h2>Configuration Load/Store</h2>
+						<button class="config-toggle" id="configToggle">▷</button>
+					</div>
+
+					<div class="config-content collapsed" id="configContent">
+						<div class="config-content-inner">
+							<div class="config-section">
+								<h3>Presets</h3>
+								<div class="preset-controls">
+									<select id="presetSelector">
+										<!-- Options will be populated by JavaScript -->
+									</select>
+									<button class="button" id="loadPresetBtn">Load Preset</button>
+								</div>
+							</div>
+							<div class="config-section">
+								<h3>Save Configuration</h3>
+								<div class="save-controls">
+									<input type="text" id="configName" placeholder="Configuration name..."
+										maxlength="50">
+									<button class="button" id="saveConfigBtn">Save Current</button>
+								</div>
+							</div>
+
+							<div class="config-section">
+								<h3>Load Configuration</h3>
+								<div class="load-controls">
+									<select id="configSelector">
+										<option value="">Select saved configuration...</option>
+									</select>
+									<button class="button" id="loadConfigBtn">Load</button>
+									<button class="button danger" id="deleteConfigBtn">Delete</button>
+								</div>
+							</div>
+
+							<div class="config-section">
+								<h3>Import/Export</h3>
+								<div class="import-export-controls">
+									<button class="button secondary" id="exportConfigBtn">Export Current</button>
+									<button class="button secondary" id="importConfigBtn">Import from File</button>
+									<input type="file" id="importFileInput" accept=".json" style="display: none;">
+								</div>
+							</div>
+
+							<div class="config-status" id="configStatus"></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="panel">
+					<h2>Gamepad Status</h2>
+					<div id="gamepadName">No gamepad detected</div>
+
+					<div class="gamepad-status">
+						<div class="gamepad-buttons">
+							<h4>Buttons</h4>
+							<div class="button-feedback-grid" id="gpButtonGrid">
+								<!-- Buttons will be populated by JavaScript -->
+							</div>
+						</div>
+
+						<div class="gamepad-sticks">
+							<h4>Analog Sticks</h4>
+							<div class="stick-display">
+								<div class="stick-values">
+									Left: <span id="leftStick">0.00, 0.00</span>
+								</div>
+								<div class="stick-values">
+									Right: <span id="rightStick">0.00, 0.00</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="panel">
+					<h2>External Control</h2>
+				</div>
+			</div>
+
+			<div class="right stack">
+				<!-- Manipulator Pipeline Panel -->
+				<div class="panel">
+					<h2>Manipulator Pipeline</h2>
+					<div class="pipeline-info">
+						<p>Configure the processing pipeline. Data flows from top to bottom.</p>
+					</div>
+
+					<!-- Collapsible Pipeline Controls -->
+					<div class="pipeline-controls-header">
+						<button class="button secondary" id="toggleControlsBtn">
+							<span id="toggleControlsIcon">▷</span> Add Manipulator...
+						</button>
+						<button class="button danger" id="clearPipelineBtn">Clear All</button>
+					</div>
+
+					<div class="pipeline-controls" id="pipelineControls" style="display:none;">
+						<!-- Dynamic buttons will be added here by JavaScript -->
+					</div>
+
+					<div class="pipeline-container" id="pipelineContainer">
+						<!-- Dynamic manipulators will be added here -->
+					</div>
+				</div>
+			</div>
+
+			<!-- Messages Panel -->
+			<div class="messages">
+				<h3>System Messages</h3>
+				<div id="messageLog"></div>
+			</div>
+		</div>
+	</div>
+
+	<script type="module" src="./src/main.js"></script>
+</body>
+
+</html>

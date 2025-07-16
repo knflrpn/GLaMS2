@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twitch Chat Command Editor</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Command Editor specific styles */
+        .command-editor {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .editor-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .editor-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Command list sidebar */
+        .command-list-panel {
+            position: sticky;
+            top: 20px;
+        }
+
+        .command-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .command-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .command-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .command-item.active {
+            background: rgba(99, 102, 241, 0.2);
+            border-color: #6366f1;
+        }
+
+        .command-item-keywords {
+            font-size: 0.85rem;
+            color: #a0a0a0;
+            margin-top: 4px;
+        }
+
+        /* Command editor form */
+        .form-section {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .form-section h3 {
+            margin-bottom: 15px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .form-field label {
+            font-size: 0.9rem;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .form-field input,
+        .form-field select {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e0e0e0;
+        }
+
+        .form-field input:focus,
+        .form-field select:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        /* Keywords input */
+        .keywords-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .keyword-tag {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9rem;
+        }
+
+        .keyword-tag button {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.2rem;
+            line-height: 1;
+        }
+
+        /* Actions list */
+        .action-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .action-number {
+            background: rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .button-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.85rem;
+        }
+
+        .button-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .button-toggle.active {
+            background: rgba(99, 102, 241, 0.3);
+            border-color: #6366f1;
+            color: #ffffff;
+        }
+
+        /* Analog stick controls */
+        .analog-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stick-control {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stick-control h5 {
+            margin-bottom: 10px;
+            color: #e0e0e0;
+        }
+
+        .stick-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Config actions */
+        .config-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .config-name-input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        /* Status messages */
+        .status-message {
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .status-message.success {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .status-message.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* File upload area */
+        .file-upload-area {
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload-area:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .file-upload-area.drag-over {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Help text */
+        .help-text {
+            font-size: 0.85rem;
+            color: #9ca3af;
+            margin-top: 5px;
+        }
+
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+        }
+
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 200px;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            font-size: 0.85rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Slider styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #6366f1;
+            cursor: pointer;
+        }
+
+        .slider-value {
+            display: inline-block;
+            min-width: 60px;
+            text-align: right;
+            color: #a5b4fc;
+            font-weight: 600;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #9ca3af;
+        }
+
+        .empty-state h4 {
+            color: #e0e0e0;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="command-editor">
+        <div class="editor-header">
+            <h1>GLaMS Chat Command Editor</h1>
+            <p>Create and manage text controller commands</p>
+        </div>
+
+        <div id="statusMessage"></div>
+
+        <div class="editor-layout">
+            <!-- Command List Sidebar -->
+            <div class="panel command-list-panel">
+                <h2>Commands</h2>
+                <div class="command-list" id="commandList">
+                    <!-- Commands will be populated here -->
+                </div>
+                <button class="button small" style="width: 100%; margin-top: 10px;" onclick="commandEditor.newCommand()">
+                    + New Command
+                </button>
+            </div>
+
+            <!-- Main Editor -->
+            <div class="panel">
+                <div id="editorContent">
+                    <div class="empty-state">
+                        <h4>No Command Selected</h4>
+                        <p>Select a command from the list or create a new one to get started</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Management -->
+        <div class="panel" style="margin-top: 20px;">
+            <h2>Configuration Management</h2>
+            
+            <div class="form-section">
+                <div class="config-actions">
+                    <input type="text" id="configName" class="config-name-input" placeholder="Configuration name" value="My Config">
+                    <button class="button" onclick="commandEditor.publishConfig()">
+                        💾 Publish to Manipulator
+                    </button>
+                    <button class="button secondary" onclick="commandEditor.exportConfig()">
+                        📥 Export to File
+                    </button>
+                    <label class="button secondary" style="margin: 0;">
+                        📤 Import from File
+                        <input type="file" accept=".json" onchange="commandEditor.importConfig(event)" style="display: none;">
+                    </label>
+                </div>
+            </div>
+
+            <div class="file-upload-area" id="dropZone">
+                <p>Or drag and drop a configuration file here</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="./src/command-edit.js"></script>
+</body>
+</html>
