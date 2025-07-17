@@ -618,9 +618,9 @@ async function connectToSwiCC(swiccId) {
 				logMessage(`SwiCC #${swiccId + 1} disconnected`);
 				updateSwiCCConnectionStatus(swiccId, false);
 			},
-			onMessage: (msg) => {
+			logMessage: (msg) => {
 				logMessage(`SwiCC #${swiccId + 1}: ${msg}`);
-			}
+			},
 		});
 
 		// Connect to port
@@ -631,12 +631,6 @@ async function connectToSwiCC(swiccId) {
 
 		// Add sink to engine
 		engine.addSink(`swicc${swiccId}`, swiccSink);
-
-		// Start engine if this is the first connection
-		if (swiccSinks.size === 1) {
-			engine.start();
-			logMessage('Engine started - pipeline is processing gamepad inputs');
-		}
 
 		updateSwiCCConnectionStatus(swiccId, true);
 		logMessage(`Connected to SwiCC #${swiccId + 1} successfully!`);
