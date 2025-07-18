@@ -121,17 +121,13 @@ const PIPELINE_PRESETS = {
 		name: 'Default',
 		description: 'Passthrough with controller display',
 		pipeline: [
-			{ type: 'DisplayBroadcaster', config: { highlightType: 'controller-state-outer' } },
-			{ type: 'DisplayBroadcaster', config: { highlightType: 'controller-state-inner' } },
 		]
 	},
 	TwitchControl: {
 		name: 'Twitch Control',
 		description: 'Display and Twitch Chat control',
 		pipeline: [
-			{ type: 'DisplayBroadcaster', config: { highlightType: 'controller-state-outer' } },
 			{ type: 'ChatCommand', config: {} },
-			{ type: 'DisplayBroadcaster', config: { highlightType: 'controller-state-inner' } },
 		]
 	},
 	// Add more presets here

@@ -2,25 +2,33 @@
  * ./src/manipulators/ManipulatorPipeline.js
  *
  * Manages a chain of manipulators that process ControllerState objects.
- * Includes registry, position-based indexing, and action execution.
+ * Includes registry, position-based indexing, action execution, and display broadcasting.
  */
 
 import { BaseManipulator } from './BaseManipulator.js';
 import { TurboButton } from './TurboButton.js';
-import { DisplayBroadcaster } from './DisplayBroadcaster.js';
 import { ButtonRemap } from './ButtonRemap.js';
 import { InputDelay } from './InputDelay.js';
 import { A2D } from './A2D.js';
 import { ChatCommand } from './ChatCommand.js';
 
 /**
+ * @typedef {Object} BroadcastConfig
+ * @property {boolean} [enabled=true] - Whether broadcasting is enabled
+ * @property {string} [channelName='swicc-controller'] - Name of the broadcast channel
+ * @property {number} [innerSnapshotPosition=0] - Pipeline position for inner highlighting (0-based)
+ * @property {number} [outerSnapshotPosition=50] - Pipeline position for outer highlighting (0-based)
+ * @property {number} [throttleMs=16] - Minimum time between broadcasts in ms (~60fps)
+ */
+
+/**
  * A pipeline that processes ControllerState through a series of manipulators.
+ * Also handles broadcasting controller state snapshots to display windows.
  */
 export class ManipulatorPipeline {
 
 	// Manipulator registry - add new manipulator types here
 	static MANIPULATOR_REGISTRY = [
-		DisplayBroadcaster,
 		TurboButton,
 		ButtonRemap,
 		InputDelay,
@@ -29,7 +37,10 @@ export class ManipulatorPipeline {
 		// Add more manipulator types here as needed
 	];
 
-	constructor() {
+	/**
+	 * @param {BroadcastConfig} broadcastConfig - Configuration for display broadcasting
+	 */
+	constructor(broadcastConfig = {}) {
 		/** @private @type {BaseManipulator[]} */
 		this.manipulators = [];
 
@@ -38,6 +49,137 @@ export class ManipulatorPipeline {
 
 		/** @private */
 		this._listeners = new Map();
+
+		// Initialize broadcasting configuration
+		this.broadcastConfig = {
+			enabled: broadcastConfig.enabled !== false,
+			channelName: broadcastConfig.channelName || 'swicc-controller',
+			innerSnapshotPosition: broadcastConfig.innerSnapshotPosition ?? 0,
+			outerSnapshotPosition: broadcastConfig.outerSnapshotPosition ?? 50,
+			throttleMs: broadcastConfig.throttleMs ?? 16
+		};
+
+		// Initialize broadcast channel if enabled
+		this.broadcastChannel = null;
+		this.lastBroadcast = 0;
+		this.stateSnapshots = new Map();
+
+		if (this.broadcastConfig.enabled) {
+			this._initializeBroadcasting();
+		}
+
+		// Register broadcasting actions
+		this._registerBroadcastActions();
+	}
+
+	/**
+	 * Initialize the broadcast channel
+	 * @private
+	 */
+	_initializeBroadcasting() {
+		try {
+			this.broadcastChannel = new BroadcastChannel(this.broadcastConfig.channelName);
+			console.log(`[ManipulatorPipeline] Broadcasting initialized on channel: ${this.broadcastConfig.channelName}`);
+		} catch (error) {
+			console.error('[ManipulatorPipeline] Failed to initialize broadcast channel:', error);
+			this.broadcastConfig.enabled = false;
+		}
+	}
+
+	/**
+	 * Register actions for broadcast control
+	 * @private
+	 */
+	_registerBroadcastActions() {
+		// These actions are available on the pipeline itself
+		this.broadcastActions = new Map([
+			['setBroadcastEnabled', {
+				displayName: 'Set Broadcast Enabled',
+				description: 'Enable or disable state broadcasting',
+				parameters: [{ name: 'enabled', type: 'boolean', required: true }],
+				handler: (params) => this.setBroadcastEnabled(params.enabled)
+			}],
+			['setBroadcastPositions', {
+				displayName: 'Set Broadcast Positions',
+				description: 'Set pipeline positions for inner and outer snapshots',
+				parameters: [
+					{ name: 'innerPosition', type: 'number', required: true },
+					{ name: 'outerPosition', type: 'number', required: true }
+				],
+				handler: (params) => this.setBroadcastPositions(params.innerPosition, params.outerPosition)
+			}],
+			['getBroadcastConfig', {
+				displayName: 'Get Broadcast Config',
+				description: 'Get current broadcast configuration',
+				handler: () => this.getBroadcastConfig()
+			}],
+		]);
+	}
+
+	/**
+	 * Enable or disable broadcasting
+	 * @param {boolean} enabled
+	 */
+	setBroadcastEnabled(enabled) {
+		const wasEnabled = this.broadcastConfig.enabled;
+		this.broadcastConfig.enabled = enabled;
+
+		if (enabled && !wasEnabled) {
+			this._initializeBroadcasting();
+		} else if (!enabled && wasEnabled && this.broadcastChannel) {
+			this.broadcastChannel.close();
+			this.broadcastChannel = null;
+		}
+
+		console.log(`[ManipulatorPipeline] Broadcasting ${enabled ? 'enabled' : 'disabled'}`);
+		return this.broadcastConfig.enabled;
+	}
+
+	/**
+	 * Set the pipeline positions for snapshots
+	 * @param {number} innerPosition
+	 * @param {number} outerPosition
+	 */
+	setBroadcastPositions(innerPosition, outerPosition) {
+		this.broadcastConfig.innerSnapshotPosition = Math.max(0, innerPosition);
+		this.broadcastConfig.outerSnapshotPosition = Math.max(0, outerPosition);
+
+		console.log(`[ManipulatorPipeline] Broadcast positions set - inner: ${innerPosition}, outer: ${outerPosition}`);
+		return {
+			innerPosition: this.broadcastConfig.innerSnapshotPosition,
+			outerPosition: this.broadcastConfig.outerSnapshotPosition
+		};
+	}
+
+	/**
+	 * Get current broadcast configuration
+	 * @returns {BroadcastConfig}
+	 */
+	getBroadcastConfig() {
+		return { ...this.broadcastConfig };
+	}
+
+	/**
+	 * Execute a broadcast action
+	 * @param {string} actionName
+	 * @param {Object} params
+	 * @returns {any}
+	 */
+	executeBroadcastAction(actionName, params = {}) {
+		const action = this.broadcastActions.get(actionName);
+		if (!action) {
+			throw new Error(`Unknown broadcast action: ${actionName}`);
+		}
+
+		return action.handler(params);
+	}
+
+	/**
+	 * Get available broadcast actions
+	 * @returns {Map}
+	 */
+	getBroadcastActions() {
+		return new Map(this.broadcastActions);
 	}
 
 	/**
@@ -418,6 +560,90 @@ export class ManipulatorPipeline {
 	}
 
 	/**
+	 * Serialize a controller state for transmission
+	 * @private
+	 */
+	_serializeState(state) {
+		return {
+			digital: { ...state.digital },
+			analog: { ...state.analog },
+			imuSamples: state.imuSamples.map(s => ({ ...s })),
+			timestamp: Date.now()
+		};
+	}
+
+	/**
+	 * Capture state snapshot at specified position
+	 * @private
+	 */
+	_captureSnapshot(state, snapshotType) {
+		if (this.broadcastConfig.enabled) {
+			this.stateSnapshots.set(snapshotType, {
+				state: this._serializeState(state),
+				timestamp: Date.now()
+			});
+		}
+	}
+
+	/**
+	 * Broadcast collected state snapshots
+	 * @private
+	 */
+	_broadcastSnapshots() {
+		if (!this.broadcastConfig.enabled || !this.broadcastChannel) {
+			return;
+		}
+
+		const now = Date.now();
+
+		// Throttle broadcasts
+		if (now - this.lastBroadcast < this.broadcastConfig.throttleMs) {
+			return;
+		}
+
+		try {
+			const message = {
+				type: 'controller-state',
+				timestamp: now,
+				snapshots: {
+					inner: this.stateSnapshots.get('inner') || null,
+					outer: this.stateSnapshots.get('outer') || null
+				}
+			};
+
+			this.broadcastChannel.postMessage(message);
+			this.lastBroadcast = now;
+
+			// Clear snapshots after broadcasting
+			this.stateSnapshots.clear();
+
+		} catch (error) {
+			console.error('[ManipulatorPipeline] Broadcast error:', error);
+		}
+	}
+
+	/**
+	 * Send a control message to listening windows
+	 * @private
+	 */
+	_sendControlMessage(type, data = {}) {
+		if (!this.broadcastConfig.enabled || !this.broadcastChannel) {
+			return;
+		}
+
+		try {
+			this.broadcastChannel.postMessage({
+				type: 'control',
+				subType: type,
+				timestamp: Date.now(),
+				data
+			});
+		} catch (error) {
+			console.error('[ManipulatorPipeline] Control message error:', error);
+		}
+	}
+
+	/**
 	 * Process a ControllerState through the pipeline.
 	 * @param {import('../core/ControllerState.js').ControllerState} state
 	 * @returns {import('../core/ControllerState.js').ControllerState}
@@ -429,7 +655,18 @@ export class ManipulatorPipeline {
 
 		let currentState = state;
 
-		for (const manipulator of this.manipulators) {
+		// Process through manipulators
+		for (let i = 0; i < this.manipulators.length; i++) {
+			// Capture snapshots if needed
+			if (this.broadcastConfig.innerSnapshotPosition === i) {
+				this._captureSnapshot(currentState, 'inner');
+			}
+			if (this.broadcastConfig.outerSnapshotPosition === i) {
+				this._captureSnapshot(currentState, 'outer');
+			}
+
+			const manipulator = this.manipulators[i];
+
 			if (manipulator.enabled) {
 				try {
 					currentState = manipulator.process(currentState, deltaTime);
@@ -439,6 +676,17 @@ export class ManipulatorPipeline {
 				}
 			}
 		}
+
+		// Capture snapshots if position is beyond pipeline length
+		if (this.broadcastConfig.innerSnapshotPosition >= this.manipulators.length) {
+			this._captureSnapshot(currentState, 'inner');
+		}
+		if (this.broadcastConfig.outerSnapshotPosition >= this.manipulators.length) {
+			this._captureSnapshot(currentState, 'outer');
+		}
+
+		// Broadcast collected snapshots
+		this._broadcastSnapshots();
 
 		return currentState;
 	}
@@ -451,6 +699,8 @@ export class ManipulatorPipeline {
 		return {
 			count: this.manipulators.length,
 			enabled: this.manipulators.filter(m => m.enabled).length,
+			broadcasting: this.broadcastConfig.enabled,
+			broadcastConfig: this.getBroadcastConfig(),
 			manipulators: this.manipulators.map(m => ({
 				title: m.title,
 				enabled: m.enabled,
@@ -480,7 +730,10 @@ export class ManipulatorPipeline {
 			});
 		}
 
-		return { manipulators: snapshot };
+		return {
+			manipulators: snapshot,
+			broadcastConfig: this.getBroadcastConfig()
+		};
 	}
 
 	/**
@@ -533,5 +786,30 @@ export class ManipulatorPipeline {
 		if (handlers) {
 			handlers.forEach(handler => handler(data));
 		}
+	}
+
+	/**
+	 * Dispose of the pipeline and clean up resources
+	 */
+	dispose() {
+		// Clean up manipulators
+		this.manipulators.forEach(manipulator => {
+			manipulator.onDetach();
+		});
+		this.manipulators = [];
+
+		// Clean up broadcast channel
+		if (this.broadcastChannel) {
+			this.broadcastChannel.close();
+			this.broadcastChannel = null;
+		}
+
+		// Clear listeners
+		this._listeners.clear();
+
+		// Clear snapshots
+		this.stateSnapshots.clear();
+
+		console.log('[ManipulatorPipeline] Disposed');
 	}
 }

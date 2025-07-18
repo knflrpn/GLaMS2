@@ -779,14 +779,6 @@ input[type="text"]:focus {
 	animation: pulse 2s infinite;
 }
 
-/* Focus styles for accessibility */
-.button:focus,
-.manipulator-wrapper input:focus,
-.manipulator-wrapper select:focus {
-	outline: 2px solid #6366f1;
-	outline-offset: 2px;
-}
-
 /* High contrast mode support */
 @media (prefers-contrast: high) {
 	.panel {
