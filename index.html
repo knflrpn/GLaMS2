@@ -158,14 +158,14 @@
 
 					<div class="gamepad-status">
 						<div class="gamepad-buttons">
-							<h4>Buttons</h4>
+							<h4>Buttons Test</h4>
 							<div class="button-feedback-grid" id="gpButtonGrid">
 								<!-- Buttons will be populated by JavaScript -->
 							</div>
 						</div>
 
 						<div class="gamepad-sticks">
-							<h4>Analog Sticks</h4>
+							<h4>Sticks Test</h4>
 							<div class="stick-display">
 								<div class="stick-values">
 									Left: <span id="leftStick">0.00, 0.00</span>
@@ -187,7 +187,7 @@
 				<!-- Manipulator Pipeline Panel -->
 				<div class="panel">
 					<h2>Manipulator Pipeline</h2>
-					<div class="pipeline-info">
+					<div class="info-box">
 						<p>Configure the processing pipeline. Data flows from top to bottom.</p>
 					</div>
 
@@ -205,6 +205,48 @@
 
 					<div class="pipeline-container" id="pipelineContainer">
 						<!-- Dynamic manipulators will be added here -->
+						<!-- Snapshot indicators will be inserted here by JavaScript -->
+					</div>
+				</div>
+
+				<!-- Broadcast Control Panel -->
+				<div class="panel">
+					<h2>Controller Display Settings</h2>
+					<div class="broadcast-controls">
+						<div class="broadcast-enable">
+							<label class="checkbox-label">
+								<input type="checkbox" id="broadcastEnabled" checked>
+								<span class="checkmark"></span>
+								Enable Broadcasting
+							</label>
+						</div>
+
+						<div class="info-box">
+							<p>Inner and outer button highlighting gets captured at the pipeline positions set below.
+								Default is before any manipulation and after all manipulation.
+							</p>
+						</div>
+
+						<div class="snapshot-controls">
+							<div class="snapshot-control-group">
+								<div class="position-input-group">
+									<span class="position-label">Pipeline position for inner highlighting: </span>
+									<input type="number" id="innerSnapshotPosition" value="0" min="0" max="10">
+								</div>
+							</div>
+
+							<div class="snapshot-control-group">
+								<div class="position-input-group">
+									<span class="position-label">Pipeline position for outer highlighting: </span>
+									<input type="number" id="outerSnapshotPosition" value="10" min="0" max="10">
+								</div>
+							</div>
+						</div>
+
+						<div class="broadcast-actions">
+							<button class="button" id="applyBroadcastSettings">Apply Settings</button>
+							<button class="button secondary" id="openDisplayWindow">Open Display Window</button>
+						</div>
 					</div>
 				</div>
 			</div>

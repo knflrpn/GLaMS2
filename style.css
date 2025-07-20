@@ -53,7 +53,7 @@ body {
 		"t t"
 		"l r"
 		"b b";
-	grid-template-columns: 50% 50%;
+	grid-template-columns: 1fr 1fr;
 	gap: 20px;
 	width: 100%;
 	height: 100%;
@@ -387,7 +387,7 @@ body {
 	background: none;
 	color: white;
 	border: none;
-	font-size: 16px;
+	font-size: 24px;
 	cursor: pointer;
 	padding: 0;
 	margin-left: 10px;
@@ -432,10 +432,6 @@ body {
 	letter-spacing: 0.4px;
 }
 
-.button + .button {
-  margin-left: 5px;
-}
-
 .button:hover:not(:disabled) {
 	background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
 	box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
@@ -477,7 +473,7 @@ body {
 }
 
 /* Pipeline styles */
-.pipeline-info {
+.info-box {
 	background: rgba(59, 130, 246, 0.1);
 	padding: 15px;
 	border-radius: 8px;
@@ -485,16 +481,9 @@ body {
 	border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
-.pipeline-info p {
+.info-box p {
 	color: #93c5fd;
 	margin: 0;
-}
-
-.pipeline-controls {
-	display: flex;
-	gap: 10px;
-	margin-bottom: 25px;
-	flex-wrap: wrap;
 }
 
 .pipeline-container {
@@ -507,13 +496,56 @@ body {
 	background: rgba(0, 0, 0, 0.04);
 }
 
-.pipeline-container:empty::before {
+.pipeline-container:not(:has(> :nth-child(3)))::before {
 	content: "No manipulators in pipeline. Add some using the buttons above.";
 	color: #666;
 	font-style: italic;
 	display: block;
 	text-align: center;
 	padding: 20px;
+}
+
+/* Controller Display Controls */
+.broadcast-actions {
+	display: flex;
+	gap: 10px;
+}
+
+.snapshot-controls {
+	margin: 20px 0;
+}
+
+.snapshot-indicator {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin: 8px 0;
+	padding: 8px 12px;
+	border-radius: 8px;
+	position: relative;
+	transition: all 0.3s ease;
+	min-height: 40px;
+}
+
+.snapshot-label {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 30px;
+    background-color: #6c757d;
+    padding: 3px 10px;
+    border-radius: 10px;
+}
+
+.snapshot-line {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: 2px;
+	background: currentColor;
+	opacity: 0.3;
+	z-index: -1;
 }
 
 /* Manipulator wrapper */
@@ -563,6 +595,7 @@ body {
 .manipulator-footer {
 	display: flex;
 	flex-direction: row;
+	gap: 15px;
 	margin-top: 15px;
 	padding-top: 15px;
 	border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -732,9 +765,18 @@ input[type="text"]:focus {
 }
 
 /* Responsive design */
-@media (max-width: 768px) {
+@media (max-width: 1020px) {
 	.container {
 		padding: 15px;
+	}
+
+	.main-content {
+		grid-template-areas:
+		"t"
+		"l"
+		"r"
+		"b";
+		grid-template-columns: 1fr;
 	}
 
 	.header h1 {

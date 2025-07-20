@@ -1,407 +1,659 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SwiCC Controller Display</title>
-    <style>
-        body {
-            font-family: 'Courier New', monospace;
-            background: #1a1a1a;
-            color: #ffffff;
-            padding: 20px;
-            margin: 0;
-        }
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>SwiCC Controller Display</title>
+	<style>
+		body {
+			font-family: 'Courier New', monospace;
+			background: #1a1a1a;
+			color: #ffffff;
+			padding: 20px;
+			margin: 0;
+		}
 
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: #2d2d2d;
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid #444;
-        }
+		.container {
+			max-width: 1000px;
+			margin: 0 auto;
+			background: #2d2d2d;
+			border-radius: 10px;
+			padding: 20px;
+			border: 1px solid #444;
+		}
 
-        .header {
-            text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #444;
-        }
+		.header {
+			text-align: center;
+			margin-bottom: 20px;
+			padding-bottom: 15px;
+			border-bottom: 1px solid #444;
+		}
 
-        .status {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+		.status {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 10px;
+			margin-bottom: 15px;
+		}
 
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ff4444;
-            transition: background 0.3s ease;
-        }
+		.status-dot {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: #ff4444;
+			transition: background 0.3s ease;
+		}
 
-        .status-dot.connected {
-            background: #44ff44;
-        }
+		.status-dot.connected {
+			background: #44ff44;
+		}
 
-        .info-line {
-            margin: 5px 0;
-            color: #aaa;
-        }
+		.main-display {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			gap: 20px;
+			align-items: start;
+		}
 
-        .snapshots-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
+		.visual-section {
+			padding: 15px;
+			background: #1a1a1a;
+			border-radius: 8px;
+			border-left: 4px solid #4fd1c7;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
 
-        .snapshot-section {
-            padding: 15px;
-            background: #1a1a1a;
-            border-radius: 8px;
-            border-left: 4px solid #4fd1c7;
-        }
+		.visual-section h3 {
+			margin-bottom: 15px;
+			font-size: 1.2rem;
+			color: #4fd1c7;
+		}
 
-        .snapshot-section.inner {
-            border-left-color: #ff6b6b;
-        }
+		#controllerSvg {
+			max-width: 100%;
+			height: auto;
+			background: #2a2a2a;
+			border-radius: 8px;
+		}
 
-        .snapshot-section.outer {
-            border-left-color: #4ecdc4;
-        }
+		.controls-section {
+			padding: 15px;
+			background: #1a1a1a;
+			border-radius: 8px;
+			border-left: 4px solid #ffa500;
+			min-width: 200px;
+		}
 
-        .snapshot-section h3 {
-            margin-bottom: 10px;
-            font-size: 1.2rem;
-        }
+		.controls-section h3 {
+			margin-bottom: 15px;
+			font-size: 1.2rem;
+			color: #ffa500;
+		}
 
-        .snapshot-section.inner h3 {
-            color: #ff6b6b;
-        }
+		.color-control {
+			margin-bottom: 15px;
+		}
 
-        .snapshot-section.outer h3 {
-            color: #4ecdc4;
-        }
+		.color-control label {
+			display: block;
+			margin-bottom: 5px;
+			font-size: 0.9rem;
+			color: #ccc;
+		}
 
-        .snapshot-meta {
-            font-size: 0.8rem;
-            color: #888;
-            margin-bottom: 10px;
-        }
+		.color-input-group {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+		}
 
-        .data-content {
-            white-space: pre-wrap;
-            font-size: 0.9rem;
-            line-height: 1.4;
-            color: #ccc;
-            max-height: 400px;
-            overflow-y: auto;
-        }
+		.color-input {
+			width: 40px;
+			height: 30px;
+			border: none;
+			border-radius: 4px;
+			cursor: pointer;
+			background: none;
+		}
 
-        .no-data {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 40px;
-            grid-column: 1 / -1;
-        }
+		.color-text {
+			background: #333;
+			border: 1px solid #555;
+			color: #fff;
+			padding: 5px 8px;
+			border-radius: 4px;
+			font-family: monospace;
+			font-size: 0.8rem;
+			width: 80px;
+		}
 
-        .no-snapshot {
-            text-align: center;
-            color: #666;
-            font-style: italic;
-            padding: 20px;
-        }
+		.no-data {
+			text-align: center;
+			color: #666;
+			font-style: italic;
+			padding: 40px;
+		}
 
-        @media (max-width: 768px) {
-            .snapshots-container {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+		@media (max-width: 768px) {
+			.main-display {
+				grid-template-columns: 1fr;
+			}
+
+			.controls-section {
+				min-width: auto;
+			}
+		}
+	</style>
 </head>
+
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🎮 SwiCC Controller Display</h1>
-            <div class="status">
-                <div class="status-dot" id="statusDot"></div>
-                <span id="statusText">Waiting for connection...</span>
-            </div>
-            <div class="info-line">Channel: <span id="channelName">swicc-controller</span></div>
-            <div class="info-line">Rate: <span id="messageRate">0</span> msg/s | Updates: <span id="updateCount">0</span></div>
-            <div class="info-line">Last Update: <span id="lastUpdate">Never</span></div>
-        </div>
+	<div class="container">
+		<div class="header">
+			<div class="status">
+				<div class="status-dot" id="statusDot"></div>
+				<span id="statusText">Waiting for connection...</span>
+			</div>
+		</div>
 
-        <div id="dataDisplay">
-            <div class="no-data">No controller data received yet</div>
-        </div>
-    </div>
+		<div class="main-display">
+			<div class="visual-section">
+				<div id="controllerContainer">
+					Loading controller visual...
+				</div>
+			</div>
 
-    <script>
-        class ControllerDisplay {
-            constructor(channelName = 'swicc-controller') {
-                this.channelName = channelName;
-                this.channel = null;
-                this.connected = false;
-                this.messageCount = 0;
-                this.updateCount = 0;
-                this.lastMessageTime = 0;
-                this.messageRate = 0;
-                this.lastUpdate = null;
-                
-                // Current snapshot data
-                this.currentSnapshots = {
-                    inner: null,
-                    outer: null
-                };
+			<div class="controls-section">
+				<h3>Color Settings</h3>
 
-                // Callbacks
-                this.onSnapshotsUpdate = null;
-                this.onConnectionChange = null;
-                this.onStatsUpdate = null;
-                this.onControlMessage = null;
+				<div class="color-control">
+					<label for="baseColor">Base Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="baseColor" class="color-input" value="#060490">
+						<input type="text" id="baseColorText" class="color-text" value="#060490">
+					</div>
+				</div>
 
-                this._initChannel();
-                this._startStatsTimer();
-            }
+				<div class="color-control">
+					<label for="innerColor">Inner Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="innerColor" class="color-input" value="#008015">
+						<input type="text" id="innerColorText" class="color-text" value="#008015">
+					</div>
+				</div>
 
-            _initChannel() {
-                try {
-                    this.channel = new BroadcastChannel(this.channelName);
-                    this.channel.addEventListener('message', (event) => {
-                        this._handleMessage(event.data);
-                    });
-                    
-                    this._setConnected(true);
-                } catch (error) {
-                    console.error('Failed to initialize broadcast channel:', error);
-                    this._setConnected(false);
-                }
-            }
+				<div class="color-control">
+					<label for="outerColor">Outer Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="outerColor" class="color-input" value="#00d619">
+						<input type="text" id="outerColorText" class="color-text" value="#00d619">
+					</div>
+				</div>
 
-            _handleMessage(data) {
-                this.messageCount++;
-                this.lastMessageTime = Date.now();
+				<div class="color-control">
+					<label for="bodyColor">Body Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="bodyColor" class="color-input" value="#5e5e5e">
+						<input type="text" id="bodyColorText" class="color-text" value="#5e5e5e">
+					</div>
+				</div>
 
-                if (data.type === 'controller-state') {
-                    this._handleControllerState(data);
-                } else if (data.type === 'control') {
-                    this._handleControlMessage(data);
-                }
-            }
+				<div class="color-control">
+					<label for="accentColor">Accent Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="accentColor" class="color-input" value="#ffffff">
+						<input type="text" id="accentColorText" class="color-text" value="#ffffff">
+					</div>
+				</div>
 
-            _handleControllerState(data) {
-                // Update snapshots with new data
-                if (data.snapshots) {
-                    let updated = false;
+				<div class="color-control">
+					<label for="backgroundColor">Background:</label>
+					<div class="color-input-group">
+						<input type="color" id="backgroundColor" class="color-input" value="#000000">
+						<input type="text" id="backgroundColorText" class="color-text" value="#000000">
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 
-                    if (data.snapshots.inner) {
-                        this.currentSnapshots.inner = data.snapshots.inner;
-                        updated = true;
-                    }
+	<script>
+		class ControllerVisualizer {
+			constructor() {
+				this.svgElement = null;
+				this.elements = {};
 
-                    if (data.snapshots.outer) {
-                        this.currentSnapshots.outer = data.snapshots.outer;
-                        updated = true;
-                    }
+				// Load colors from localStorage or use defaults
+				this.colors = {
+					base: localStorage.getItem('controller-color-base') || '#060490',
+					inner: localStorage.getItem('controller-color-inner') || '#008015',
+					outer: localStorage.getItem('controller-color-outer') || '#00d619',
+					body: localStorage.getItem('controller-color-body') || '#5e5e5e',
+					accent: localStorage.getItem('controller-color-accent') || '#ffffff',
+					background: localStorage.getItem('controller-color-background') || '#000000'
+				};
 
-                    if (updated) {
-                        this.updateCount++;
-                        this.lastUpdate = Date.now();
-                        
-                        if (this.onSnapshotsUpdate) {
-                            this.onSnapshotsUpdate(this.currentSnapshots);
-                        }
-                    }
-                }
-            }
+				// Analog stick movement range (in SVG units)
+				this.stickRange = 25;
 
-            _handleControlMessage(data) {
-                if (this.onControlMessage) {
-                    this.onControlMessage(data.subType, data.data);
-                }
-            }
+				// Original stick positions
+				this.stickPositions = {
+					leftStick: { x: 108, y: 165 },
+					rightStick: { x: 304, y: 232 }
+				};
 
-            _setConnected(connected) {
-                if (this.connected !== connected) {
-                    this.connected = connected;
-                    if (this.onConnectionChange) {
-                        this.onConnectionChange(connected);
-                    }
-                }
-            }
+				// Current state hash for change detection
+				this.lastStateHash = null;
 
-            _startStatsTimer() {
-                setInterval(() => {
-                    // Calculate message rate
-                    this.messageRate = Math.round(this.messageCount);
-                    this.messageCount = 0;
+				this.loadSvg();
+			}
 
-                    // Update stats
-                    if (this.onStatsUpdate) {
-                        const timeSinceLastUpdate = this.lastUpdate ? 
-                            Date.now() - this.lastUpdate : Infinity;
+			async loadSvg() {
+				try {
+					const response = await fetch('./images/controller.svg');
+					if (!response.ok) {
+						throw new Error(`HTTP error! status: ${response.status}`);
+					}
+					const svgContent = await response.text();
 
-                        this.onStatsUpdate({
-                            messageRate: this.messageRate,
-                            updateCount: this.updateCount,
-                            timeSinceLastUpdate
-                        });
-                    }
+					const container = document.getElementById('controllerContainer');
+					container.innerHTML = svgContent;
 
-                    // Check if we're still receiving messages
-                    const timeSinceLastMessage = Date.now() - this.lastMessageTime;
-                    this._setConnected(timeSinceLastMessage < 3000); // 3 second timeout
-                }, 1000);
-            }
+					this.svgElement = container.querySelector('svg');
+					if (this.svgElement) {
+						this.svgElement.id = 'controllerSvg';
+						this.initializeElements();
+					} else {
+						throw new Error('SVG element not found');
+					}
+				} catch (error) {
+					console.error('Failed to load controller SVG:', error);
+					document.getElementById('controllerContainer').innerHTML =
+						'<div style="color: #ff6b6b;">Failed to load controller visual<br>Make sure ./images/controller.svg is accessible</div>';
+				}
+			}
 
-            dispose() {
-                if (this.channel) {
-                    this.channel.close();
-                    this.channel = null;
-                }
-            }
-        }
+			initializeElements() {
+				// Find all elements with IDs that correspond to buttons
+				const buttonIds = [
+					'buttonA', 'buttonB', 'buttonX', 'buttonY',
+					'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
+					'buttonPlus', 'buttonMinus', 'buttonHome', 'buttonCapture',
+					'buttonThumbL', 'buttonThumbR',
+					'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight'
+				];
 
-        // Initialize the controller display
-        const display = new ControllerDisplay();
+				buttonIds.forEach(id => {
+					const element = this.svgElement.querySelector(`#${id}`);
+					if (element) {
+						this.elements[id] = element;
+						// Set initial colors for buttons only
+						this.updateButtonColors(id, this.colors.base, this.colors.base);
+					}
+				});
 
-        // Get DOM elements
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        const channelName = document.getElementById('channelName');
-        const messageRate = document.getElementById('messageRate');
-        const updateCount = document.getElementById('updateCount');
-        const lastUpdate = document.getElementById('lastUpdate');
-        const dataDisplay = document.getElementById('dataDisplay');
+				// Special handling for analog sticks (don't apply button colors to these)
+				this.elements.leftStick = this.svgElement.querySelector('#leftStick');
+				this.elements.rightStick = this.svgElement.querySelector('#rightStick');
 
-        // Set up event handlers
-        display.onSnapshotsUpdate = (snapshots) => {
-            updateDataDisplay(snapshots);
-        };
+				// Handle body element separately (don't apply button colors to this)
+				this.elements.body = this.svgElement.querySelector('#body');
 
-        display.onConnectionChange = (connected) => {
-            statusDot.classList.toggle('connected', connected);
-            statusText.textContent = connected ? 'Connected' : 'Disconnected';
-            
-            if (!connected) {
-                dataDisplay.innerHTML = '<div class="no-data">Connection lost</div>';
-            }
-        };
+				// Apply initial colors for body and background
+				this.updateBodyColors();
+				this.updateBackgroundColor();
+			}
 
-        display.onStatsUpdate = (stats) => {
-            messageRate.textContent = stats.messageRate;
-            updateCount.textContent = stats.updateCount;
-            
-            if (stats.timeSinceLastUpdate < 1000) {
-                lastUpdate.textContent = 'Just now';
-            } else if (stats.timeSinceLastUpdate < 60000) {
-                lastUpdate.textContent = `${Math.floor(stats.timeSinceLastUpdate / 1000)}s ago`;
-            } else {
-                lastUpdate.textContent = 'Over a minute ago';
-            }
-        };
+			updateButtonColors(buttonName, fillColor, strokeColor) {
+				const element = this.elements[buttonName];
+				if (!element) return;
 
-        display.onControlMessage = (subType, data) => {
-            console.log(`Control message: ${subType}`, data);
-        };
+				element.style.fill = fillColor;
+				element.style.stroke = strokeColor;
+			}
 
-        function updateDataDisplay(snapshots) {
-            if (!snapshots.inner && !snapshots.outer) {
-                dataDisplay.innerHTML = '<div class="no-data">No snapshots available</div>';
-                return;
-            }
+			updateAnalogStick(stickName, x, y) {
+				const element = this.elements[stickName];
+				if (!element) return;
 
-            let html = '<div class="snapshots-container">';
-            
-            // Inner snapshot
-            html += '<div class="snapshot-section inner">';
-            html += '<h3>🔴 Inner State</h3>';
-            
-            if (snapshots.inner) {
-                html += `<div class="data-content">${formatState(snapshots.inner.state)}</div>`;
-            } else {
-                html += '<div class="no-snapshot">No inner snapshot received</div>';
-            }
-            
-            html += '</div>';
-            
-            // Outer snapshot
-            html += '<div class="snapshot-section outer">';
-            html += '<h3>🟢 Outer State</h3>';
-            
-            if (snapshots.outer) {
-                html += `<div class="data-content">${formatState(snapshots.outer.state)}</div>`;
-            } else {
-                html += '<div class="no-snapshot">No outer snapshot received</div>';
-            }
-            
-            html += '</div>';
-            html += '</div>';
-            
-            dataDisplay.innerHTML = html;
-        }
+				// Calculate new position
+				const basePos = this.stickPositions[stickName];
+				const newX = basePos.x + (x * this.stickRange);
+				const newY = basePos.y + (y * this.stickRange);
 
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleTimeString() + '.' + String(date.getMilliseconds()).padStart(3, '0');
-        }
+				// Update transform
+				element.setAttribute('transform', `translate(${newX}, ${newY})`);
+			}
 
-        function formatState(state) {
-            let output = '';
-            
-            // Digital buttons
-            if (state.digital && Object.keys(state.digital).length > 0) {
-                const pressedButtons = Object.entries(state.digital).filter(([, pressed]) => pressed);
-                if (pressedButtons.length > 0) {
-                    output += 'DIGITAL BUTTONS:\n';
-                    pressedButtons.forEach(([button, pressed]) => {
-                        output += `  ${button}: PRESSED\n`;
-                    });
-                    output += '\n';
-                }
-            }
-            
-            // Analog inputs
-            if (state.analog && Object.keys(state.analog).length > 0) {
-                const activeAnalog = Object.entries(state.analog).filter(([, value]) => Math.abs(value) > 0.001);
-                if (activeAnalog.length > 0) {
-                    output += 'ANALOG INPUTS:\n';
-                    activeAnalog.forEach(([input, value]) => {
-                        output += `  ${input}: ${typeof value === 'number' ? value.toFixed(3) : value}\n`;
-                    });
-                    output += '\n';
-                }
-            }
-            
-            // IMU data
-            if (state.imuSamples && state.imuSamples.length > 0) {
-                output += `IMU SAMPLES (${state.imuSamples.length}):\n`;
-                state.imuSamples.slice(0, 3).forEach((sample, i) => {
-                    output += `  [${i}] accel: (${sample.accelX?.toFixed(2)}, ${sample.accelY?.toFixed(2)}, ${sample.accelZ?.toFixed(2)})\n`;
-                    output += `      gyro:  (${sample.gyroX?.toFixed(2)}, ${sample.gyroY?.toFixed(2)}, ${sample.gyroZ?.toFixed(2)})\n`;
-                });
-                if (state.imuSamples.length > 3) {
-                    output += `  ... and ${state.imuSamples.length - 3} more samples\n`;
-                }
-                output += '\n';
-            }
-            
-            return output || 'No active inputs detected';
-        }
+			updateBodyColors() {
+				const bodyElement = this.elements.body;
+				if (bodyElement) {
+					bodyElement.style.fill = this.colors.body;
+					bodyElement.style.stroke = this.colors.accent;
+				}
+			}
 
-        // Update channel name display
-        channelName.textContent = display.channelName;
+			updateBackgroundColor() {
+				if (this.svgElement) {
+					this.svgElement.style.backgroundColor = this.colors.background;
+				}
+			}
 
-        // Make display available globally for debugging
-        window.controllerDisplay = display;
-    </script>
+			generateStateHash(snapshots) {
+				// Create a hash of the current state for change detection
+				const innerState = snapshots.inner && snapshots.inner.state;
+				const outerState = snapshots.outer && snapshots.outer.state;
+
+				return JSON.stringify({
+					inner: innerState ? {
+						digital: innerState.digital,
+						analog: innerState.analog
+					} : null,
+					outer: outerState ? {
+						digital: outerState.digital,
+						analog: outerState.analog
+					} : null
+				});
+			}
+
+			updateControllerState(snapshots) {
+				if (!this.svgElement) return;
+
+				// Check if state has actually changed
+				const currentHash = this.generateStateHash(snapshots);
+				if (currentHash === this.lastStateHash) {
+					return; // No change, skip update
+				}
+				this.lastStateHash = currentHash;
+
+				// Get states
+				const innerState = snapshots.inner && snapshots.inner.state;
+				const outerState = snapshots.outer && snapshots.outer.state;
+
+				if (!innerState && !outerState) {
+					// Reset to base state (buttons only, not body)
+					const allButtons = [
+						'buttonA', 'buttonB', 'buttonX', 'buttonY',
+						'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
+						'buttonPlus', 'buttonMinus', 'buttonHome', 'buttonCapture',
+						'buttonThumbL', 'buttonThumbR',
+						'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight'
+					];
+
+					allButtons.forEach(buttonName => {
+						this.updateButtonColors(buttonName, this.colors.base, this.colors.base);
+					});
+
+					// Reset analog sticks
+					this.updateAnalogStick('leftStick', 0, 0);
+					this.updateAnalogStick('rightStick', 0, 0);
+					return;
+				}
+
+				// Process all buttons with the layered logic
+				const allButtons = [
+					'buttonA', 'buttonB', 'buttonX', 'buttonY',
+					'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
+					'buttonPlus', 'buttonMinus', 'buttonHome', 'buttonCapture',
+					'buttonThumbL', 'buttonThumbR',
+					'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight'
+				];
+
+				allButtons.forEach(buttonName => {
+					// Determine button states
+					const innerPressed = innerState && innerState.digital && innerState.digital[buttonName];
+					const outerPressed = outerState && outerState.digital && outerState.digital[buttonName];
+
+					// Apply layered coloring logic
+					let fillColor, strokeColor;
+
+					if (!innerPressed && !outerPressed) {
+						// Base color for both fill and stroke
+						fillColor = strokeColor = this.colors.base;
+					} else if (innerPressed && !outerPressed) {
+						// Inner highlight for both fill and stroke
+						fillColor = strokeColor = this.colors.inner;
+					} else if (innerPressed && outerPressed) {
+						// Inner fill, outer stroke (outer overrides stroke)
+						fillColor = this.colors.inner;
+						strokeColor = this.colors.outer;
+					} else if (!innerPressed && outerPressed) {
+						// Base fill, outer stroke (outer overrides stroke only)
+						fillColor = this.colors.base;
+						strokeColor = this.colors.outer;
+					}
+
+					this.updateButtonColors(buttonName, fillColor, strokeColor);
+				});
+
+				// Update analog sticks (use most recent state available)
+				const analogState = outerState || innerState;
+				if (analogState && analogState.analog) {
+					this.updateAnalogStick('leftStick', analogState.analog.leftX, analogState.analog.leftY);
+					this.updateAnalogStick('rightStick', analogState.analog.rightX, analogState.analog.rightY);
+				} else {
+					this.updateAnalogStick('leftStick', 0, 0);
+					this.updateAnalogStick('rightStick', 0, 0);
+				}
+			}
+
+			updateColors(newColors) {
+				this.colors = { ...newColors };
+
+				// Save to localStorage
+				localStorage.setItem('controller-color-base', this.colors.base);
+				localStorage.setItem('controller-color-inner', this.colors.inner);
+				localStorage.setItem('controller-color-outer', this.colors.outer);
+				localStorage.setItem('controller-color-body', this.colors.body);
+				localStorage.setItem('controller-color-accent', this.colors.accent);
+				localStorage.setItem('controller-color-background', this.colors.background);
+
+				// Update body and background colors immediately
+				this.updateBodyColors();
+				this.updateBackgroundColor();
+
+				// Force a visual update by clearing the hash
+				this.lastStateHash = null;
+			}
+
+		}
+
+		class ControllerDisplay {
+			constructor(channelName = 'swicc-controller') {
+				this.channelName = channelName;
+				this.channel = null;
+				this.connected = false;
+				this.lastMessageTime = 0;
+
+				// Current snapshot data
+				this.currentSnapshots = {
+					inner: null,
+					outer: null
+				};
+
+				// Callbacks
+				this.onSnapshotsUpdate = null;
+				this.onConnectionChange = null;
+
+				this._initChannel();
+			}
+
+			_initChannel() {
+				try {
+					this.channel = new BroadcastChannel(this.channelName);
+					this.channel.addEventListener('message', (event) => {
+						this._handleMessage(event.data);
+					});
+				} catch (error) {
+					console.error('Failed to initialize broadcast channel:', error);
+				}
+			}
+
+			_handleMessage(data) {
+				this.lastMessageTime = Date.now();
+
+				if (data.type === 'controller-state') {
+					this._handleControllerState(data);
+				}
+			}
+
+			_handleControllerState(data) {
+				// Update snapshots with new data
+				if (data.snapshots) {
+					let updated = false;
+
+					if (data.snapshots.inner) {
+						this.currentSnapshots.inner = data.snapshots.inner;
+						updated = true;
+					}
+
+					if (data.snapshots.outer) {
+						this.currentSnapshots.outer = data.snapshots.outer;
+						updated = true;
+					}
+
+					if (updated && this.onSnapshotsUpdate) {
+						this.onSnapshotsUpdate(this.currentSnapshots);
+					}
+				}
+			}
+
+			_setConnected(connected) {
+				if (this.connected !== connected) {
+					this.connected = connected;
+					if (this.onConnectionChange) {
+						this.onConnectionChange(connected);
+					}
+				}
+			}
+
+			startConnectionTimer() {
+				setInterval(() => {
+					// Check if we're still receiving messages
+					const timeSinceLastMessage = Date.now() - this.lastMessageTime;
+					this._setConnected(timeSinceLastMessage < 3000); // 3 second timeout
+				}, 500);
+			}
+
+			dispose() {
+				if (this.channel) {
+					this.channel.close();
+					this.channel = null;
+				}
+			}
+		}
+
+		// Initialize the controller visualizer
+		const visualizer = new ControllerVisualizer();
+		const display = new ControllerDisplay();
+		display.onConnectionChange = (connected) => {
+			statusDot.classList.toggle('connected', connected);
+			statusText.textContent = connected ? 'Connected' : 'Disconnected';
+
+			if (!connected) {
+				// Reset controller state on disconnect
+				visualizer.updateControllerState({ inner: null, outer: null });
+			}
+		};
+		display.startConnectionTimer();
+
+
+		// Get DOM elements
+		const statusDot = document.getElementById('statusDot');
+		const statusText = document.getElementById('statusText');
+
+		// Color picker elements
+		const baseColorPicker = document.getElementById('baseColor');
+		const baseColorText = document.getElementById('baseColorText');
+		const innerColorPicker = document.getElementById('innerColor');
+		const innerColorText = document.getElementById('innerColorText');
+		const outerColorPicker = document.getElementById('outerColor');
+		const outerColorText = document.getElementById('outerColorText');
+		const bodyColorPicker = document.getElementById('bodyColor');
+		const bodyColorText = document.getElementById('bodyColorText');
+		const accentColorPicker = document.getElementById('accentColor');
+		const accentColorText = document.getElementById('accentColorText');
+		const backgroundColorPicker = document.getElementById('backgroundColor');
+		const backgroundColorText = document.getElementById('backgroundColorText');
+
+		// Set up event handlers
+		display.onSnapshotsUpdate = (snapshots) => {
+			visualizer.updateControllerState(snapshots);
+		};
+
+		// Initialize color pickers with saved values
+		function initializeColorPickers() {
+			baseColorPicker.value = visualizer.colors.base;
+			baseColorText.value = visualizer.colors.base;
+			innerColorPicker.value = visualizer.colors.inner;
+			innerColorText.value = visualizer.colors.inner;
+			outerColorPicker.value = visualizer.colors.outer;
+			outerColorText.value = visualizer.colors.outer;
+			bodyColorPicker.value = visualizer.colors.body;
+			bodyColorText.value = visualizer.colors.body;
+			accentColorPicker.value = visualizer.colors.accent;
+			accentColorText.value = visualizer.colors.accent;
+			backgroundColorPicker.value = visualizer.colors.background;
+			backgroundColorText.value = visualizer.colors.background;
+		}
+
+		// Set up color picker event handlers
+		function setupColorPicker(colorPicker, colorText, colorType) {
+			colorPicker.addEventListener('input', (e) => {
+				const newColor = e.target.value;
+				colorText.value = newColor;
+				updateVisualizerColor(colorType, newColor);
+			});
+
+			colorText.addEventListener('input', (e) => {
+				const newColor = e.target.value;
+				if (/^#[0-9A-Fa-f]{6}$/.test(newColor)) {
+					colorPicker.value = newColor;
+					updateVisualizerColor(colorType, newColor);
+				}
+			});
+
+			colorText.addEventListener('blur', (e) => {
+				// Validate and correct color format on blur
+				let color = e.target.value;
+				if (!/^#/.test(color) && /^[0-9A-Fa-f]{6}$/.test(color)) {
+					color = '#' + color;
+				}
+				if (/^#[0-9A-Fa-f]{6}$/.test(color)) {
+					colorText.value = color;
+					colorPicker.value = color;
+					updateVisualizerColor(colorType, color);
+				} else {
+					// Reset to current valid color
+					colorText.value = visualizer.colors[colorType];
+					colorPicker.value = visualizer.colors[colorType];
+				}
+			});
+		}
+
+		function updateVisualizerColor(colorType, newColor) {
+			const newColors = { ...visualizer.colors };
+			newColors[colorType] = newColor;
+			visualizer.updateColors(newColors);
+		}
+
+		setupColorPicker(baseColorPicker, baseColorText, 'base');
+		setupColorPicker(innerColorPicker, innerColorText, 'inner');
+		setupColorPicker(outerColorPicker, outerColorText, 'outer');
+		setupColorPicker(bodyColorPicker, bodyColorText, 'body');
+		setupColorPicker(accentColorPicker, accentColorText, 'accent');
+		setupColorPicker(backgroundColorPicker, backgroundColorText, 'background');
+
+		// Initialize color pickers after a short delay to ensure visualizer is ready
+		setTimeout(initializeColorPickers, 100);
+
+		// Make display and visualizer available globally for debugging
+		window.controllerDisplay = display;
+		window.controllerVisualizer = visualizer;
+	</script>
 </body>
+
 </html>

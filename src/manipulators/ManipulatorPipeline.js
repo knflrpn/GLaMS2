@@ -17,8 +17,7 @@ import { ChatCommand } from './ChatCommand.js';
  * @property {boolean} [enabled=true] - Whether broadcasting is enabled
  * @property {string} [channelName='swicc-controller'] - Name of the broadcast channel
  * @property {number} [innerSnapshotPosition=0] - Pipeline position for inner highlighting (0-based)
- * @property {number} [outerSnapshotPosition=50] - Pipeline position for outer highlighting (0-based)
- * @property {number} [throttleMs=16] - Minimum time between broadcasts in ms (~60fps)
+ * @property {number} [outerSnapshotPosition=10] - Pipeline position for outer highlighting (0-based)
  */
 
 /**
@@ -55,8 +54,7 @@ export class ManipulatorPipeline {
 			enabled: broadcastConfig.enabled !== false,
 			channelName: broadcastConfig.channelName || 'swicc-controller',
 			innerSnapshotPosition: broadcastConfig.innerSnapshotPosition ?? 0,
-			outerSnapshotPosition: broadcastConfig.outerSnapshotPosition ?? 50,
-			throttleMs: broadcastConfig.throttleMs ?? 16
+			outerSnapshotPosition: broadcastConfig.outerSnapshotPosition ?? 10,
 		};
 
 		// Initialize broadcast channel if enabled
@@ -595,11 +593,6 @@ export class ManipulatorPipeline {
 		}
 
 		const now = Date.now();
-
-		// Throttle broadcasts
-		if (now - this.lastBroadcast < this.broadcastConfig.throttleMs) {
-			return;
-		}
 
 		try {
 			const message = {

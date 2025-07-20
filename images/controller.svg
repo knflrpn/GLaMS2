@@ -1,158 +1,42 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
-<svg
-   width="480"
-   height="360"
-   viewBox="0 0 480 360"
-   version="1.1"
-   id="svg1"
-   xml:space="preserve"
-   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
-   sodipodi:docname="controller.svg"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg"><sodipodi:namedview
-     id="namedview1"
-     pagecolor="#ffffff"
-     bordercolor="#000000"
-     borderopacity="0.25"
-     inkscape:showpageshadow="2"
-     inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
-     inkscape:deskcolor="#d1d1d1"
-     inkscape:document-units="px"
-     inkscape:zoom="2.2922045"
-     inkscape:cx="229.25529"
-     inkscape:cy="235.36294"
-     inkscape:window-width="2560"
-     inkscape:window-height="1369"
-     inkscape:window-x="-8"
-     inkscape:window-y="740"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="main" /><defs
-     id="defs1" /><g
-     inkscape:label="Layer 1"
-     inkscape:groupmode="layer"
-     id="main"
-     style="stroke-width:5"><path
-       style="fill:#373737;fill-opacity:1;stroke:#1c1c1c;stroke-opacity:1;stroke-width:5;stroke-dasharray:none"
-       d="M 244,72 C 284.66,73.25 399.66,69.12 436,115 447.79,129.89 478.83,303.35 471,320 464.61,333.59 440.2,357.67 411,353 388.13,349.34 367.95,298.48 350,300 322.63,302.32 154.04,302.6 130,300 109.67,297.8 91.87,349.34 69,353 39.8,357.67 15.39,333.59 9,320 1.17,303.35 32.21,129.89 44,115 80.34,69.12 195.34,73.25 244,72 Z"
-       id="outline"
-       sodipodi:nodetypes="ssssssssss" /><circle
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2"
-       id="LSOutline"
-       cx="108"
-       cy="165"
-       r="40" /><circle
-       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:2"
-       id="RSOutline"
-       cx="304"
-       cy="232"
-       r="40" /><g
-       id="right-side-outer"
-       transform="translate(369,164)"><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonA-outer"
-         cx="38"
-         cy="0"
-         r="16" /><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonB-outer"
-         cx="0"
-         cy="32"
-         r="16" /><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonX-outer"
-         cx="0"
-         cy="-32"
-         r="16" /><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonY-outer"
-         cx="-38"
-         cy="0"
-         r="16" /></g><g
-       id="center-buttons"
-       transform="translate(240,140)"><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonPlus"
-         cx="50"
-         cy="-10"
-         r="10" /><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonMinus"
-         cx="-50"
-         cy="-10"
-         r="10" /><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonHome"
-         cx="25"
-         cy="24"
-         r="10" /><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonCapture"
-         cx="-25"
-         cy="24"
-         r="10" /></g><g
-       id="dpad-buttons"
-       transform="translate(166.64656,231.9491)"><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 0,0 C 6.5,0 11,10 11,13 11,16 11,25 11,28 11,30 -11,30 -11,28 -11,25 -11,16 -11,13 -11,10 -6.6,0 0,0 Z"
-         id="dpadUp"
-         sodipodi:nodetypes="ssssss"
-         transform="rotate(180),translate(0,8)" /><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 0,0 C 6.5,0 11,10 11,13 11,16 11,25 11,28 11,30 -11,30 -11,28 -11,25 -11,16 -11,13 -11,10 -6.6,0 0,0 Z"
-         id="dpadRight"
-         sodipodi:nodetypes="ssssss"
-         transform="rotate(-90),translate(0,8)" /><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 0,0 C 6.5,0 11,10 11,13 11,16 11,25 11,28 11,30 -11,30 -11,28 -11,25 -11,16 -11,13 -11,10 -6.6,0 0,0 Z"
-         id="dpadDown"
-         sodipodi:nodetypes="ssssss"
-         transform="rotate(0),translate(0,8)" /><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 0,0 C 6.5,0 11,10 11,13 11,16 11,25 11,28 11,30 -11,30 -11,28 -11,25 -11,16 -11,13 -11,10 -6.6,0 0,0 Z"
-         id="dpadLeft"
-         sodipodi:nodetypes="ssssss"
-         transform="rotate(90),translate(0,8)" /></g><g
-       id="shoulder-buttons"
-       transform="translate(240,76)"><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 23.93,0.22 C 23.93,0.22 39.83,-27.56 64.36,-21.21 90.53,-14.43 101.13,-11.3 104.06,4.57 106.79,19.32 93.64,32.61 93.64,32.61 Z"
-         id="buttonZR"
-         sodipodi:nodetypes="csscc"
-         transform="translate(75)" /><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 23.93,0.22 C 23.93,0.22 39.83,-27.56 64.36,-21.21 90.53,-14.43 101.13,-11.3 104.06,4.57 106.79,19.32 93.64,32.61 93.64,32.61 Z"
-         id="buttonZL"
-         sodipodi:nodetypes="csscc"
-         transform="matrix(-1,0,0,1,-75,0)" /><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 21.99,-9.12 C 32.59,-9.89 63.97,-9.14 89.94,5.25 108.61,15.59 111.8,29.33 109.51,32.22 106.92,35.49 -3.91,6.64 -3.14,5.27 2.32,-4.37 12.18,-7.54 21.99,-9.12 Z"
-         id="buttonR"
-         sodipodi:nodetypes="sssss"
-         transform="translate(75)" /><path
-         style="fill:#d500cd;stroke:#11e700"
-         d="M 21.99,-9.12 C 32.59,-9.89 63.97,-9.14 89.94,5.25 108.61,15.59 111.8,29.33 109.51,32.22 106.92,35.49 -3.91,6.64 -3.14,5.27 2.32,-4.37 12.18,-7.54 21.99,-9.12 Z"
-         id="buttonL"
-         sodipodi:nodetypes="ssssss"
-         transform="matrix(-1,0,0,1,-75,0)" /></g><g
-       id="leftStick"
-       transform="translate(108,165)"
-       style="fill:#4b4b4b;fill-opacity:1"><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonThumbL"
-         cx="0"
-         cy="0"
-         r="24"
-         transform="translate(0,0)" /></g><g
-       id="rightStick"
-       transform="translate(304,232)"><circle
-         style="fill:#d500cd;stroke:#11e700"
-         id="buttonThumbR"
-         cx="0"
-         cy="0"
-         r="24"
-         transform="translate(0,0)" /></g></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" width="520" height="380" viewBox="-20 10 520 380" version="1.1" id="condisp" xml:space="preserve">
+     <defs id="defs1" />
+     <g id="main" style="stroke-width:8">
+     <g id="shoulder-buttons" transform="translate(240,76)">
+       <path style="fill:#050509;stroke:#050509" d="M 23.93,0.22 C 23.93,0.22 39.83,-27.56 64.36,-21.21 90.53,-14.43 101.13,-11.3 104.06,4.57 106.79,19.32 93.64,32.61 93.64,32.61 Z" id="buttonZR" transform="translate(75)" />
+         <path style="fill:#050509;stroke:#050509" d="M 23.93,0.22 C 23.93,0.22 39.83,-27.56 64.36,-21.21 90.53,-14.43 101.13,-11.3 104.06,4.57 106.79,19.32 93.64,32.61 93.64,32.61 Z" id="buttonZL" transform="matrix(-1,0,0,1,-75,0)" />
+         <path style="fill:#050509;stroke:#050509" d="M 21.99,-9.12 C 32.59,-9.89 63.97,-9.14 89.94,5.25 108.61,15.59 111.8,29.33 109.51,32.22 106.92,35.49 -3.91,6.64 -3.14,5.27 2.32,-4.37 12.18,-7.54 21.99,-9.12 Z" id="buttonR" transform="translate(75)" />
+         <path style="fill:#050509;stroke:#050509" d="M 21.99,-9.12 C 32.59,-9.89 63.97,-9.14 89.94,5.25 108.61,15.59 111.8,29.33 109.51,32.22 106.92,35.49 -3.91,6.64 -3.14,5.27 2.32,-4.37 12.18,-7.54 21.99,-9.12 Z" id="buttonL" transform="matrix(-1,0,0,1,-75,0)" />
+        </g>
+         <g id="body" style="stroke:#050509;fill:#050509;">
+       <path style="stroke-width:5" d="M 244,72 C 284.66,73.25 399.66,69.12 436,115 447.79,129.89 478.83,303.35 471,320 464.61,333.59 440.2,357.67 411,353 388.13,349.34 367.95,298.48 350,300 322.63,302.32 154.04,302.6 130,300 109.67,297.8 91.87,349.34 69,353 39.8,357.67 15.39,333.59 9,320 1.17,303.35 32.21,129.89 44,115 80.34,69.12 195.34,73.25 244,72 Z" id="outline" />
+         <circle style="fill:none;stroke-width:2" id="LSOutline" cx="108" cy="165" r="40" />
+         <circle style="fill:none;stroke-width:2" id="RSOutline" cx="304" cy="232" r="40" />
+        </g>
+         <g id="right-side-buttons" transform="translate(369,164)">
+       <circle style="fill:#050509;stroke:#050509" id="buttonA" cx="38" cy="0" r="14" />
+         <circle style="fill:#050509;stroke:#050509" id="buttonB" cx="0" cy="32" r="14" />
+         <circle style="fill:#050509;stroke:#050509" id="buttonX" cx="0" cy="-32" r="14" />
+         <circle style="fill:#050509;stroke:#050509" id="buttonY" cx="-38" cy="0" r="14" />
+        </g>
+         <g id="center-buttons" transform="translate(240,140)" style="stroke-width:6px">
+       <circle style="fill:#050509;stroke:#050509" id="buttonPlus" cx="50" cy="-10" r="8" />
+         <circle style="fill:#050509;stroke:#050509" id="buttonMinus" cx="-50" cy="-10" r="8" />
+         <circle style="fill:#050509;stroke:#050509" id="buttonHome" cx="25" cy="24" r="8" />
+         <circle style="fill:#050509;stroke:#050509" id="buttonCapture" cx="-25" cy="24" r="8" />
+        </g>
+         <g id="dpad-buttons" transform="translate(166.64656,231.9491)">
+       <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadUp" transform="rotate(180),translate(0,10)" />
+         <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadRight" transform="rotate(-90),translate(0,10)" />
+         <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadDown" transform="translate(0,10)" />
+         <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadLeft" transform="rotate(90),translate(0,10)" />
+        </g>
+         <g id="leftStick" transform="translate(108,165)" style="fill:#050509;fill-opacity:1">
+       <circle style="fill:#050509;stroke:#050509" id="buttonThumbL" cx="0" cy="0" r="20" transform="translate(0,0)" />
+        </g>
+		
+         <g id="rightStick" transform="translate(304,232)">
+       <circle style="fill:#050509;stroke:#050509" id="buttonThumbR" cx="0" cy="0" r="20" transform="translate(0,0)" />
+    </g>
+  </g>
+</svg>
