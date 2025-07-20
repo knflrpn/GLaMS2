@@ -528,13 +528,13 @@ body {
 }
 
 .snapshot-label {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 30px;
-    background-color: #6c757d;
-    padding: 3px 10px;
-    border-radius: 10px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	height: 30px;
+	background-color: #6c757d;
+	padding: 3px 10px;
+	border-radius: 10px;
 }
 
 .snapshot-line {
@@ -772,10 +772,10 @@ input[type="text"]:focus {
 
 	.main-content {
 		grid-template-areas:
-		"t"
-		"l"
-		"r"
-		"b";
+			"t"
+			"l"
+			"r"
+			"b";
 		grid-template-columns: 1fr;
 	}
 

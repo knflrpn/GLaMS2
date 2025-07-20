@@ -4,250 +4,250 @@
  */
 
 class CommandEditor {
-    constructor() {
-        this.commands = [];
-        this.currentCommandIndex = -1;
-        this.currentCommand = null;
-        this.isDirty = false;
+	constructor() {
+		this.commands = [];
+		this.currentCommandIndex = -1;
+		this.currentCommand = null;
+		this.isDirty = false;
 
-        // Available buttons based on the controller structure
-        this.availableButtons = [
-            'buttonA', 'buttonB', 'buttonX', 'buttonY',
-            'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
-            'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
-            'buttonThumbL', 'buttonThumbR',
-            'buttonPlus', 'buttonMinus',
-            'buttonHome', 'buttonCapture'
-        ];
+		// Available buttons based on the controller structure
+		this.availableButtons = [
+			'buttonA', 'buttonB', 'buttonX', 'buttonY',
+			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
+			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
+			'buttonThumbL', 'buttonThumbR',
+			'buttonPlus', 'buttonMinus',
+			'buttonHome', 'buttonCapture'
+		];
 
-        // Button display names
-        this.buttonDisplayNames = {
-            'buttonA': 'A',
-            'buttonB': 'B',
-            'buttonX': 'X',
-            'buttonY': 'Y',
-            'buttonL': 'L',
-            'buttonR': 'R',
-            'buttonZL': 'ZL',
-            'buttonZR': 'ZR',
-            'dpadUp': 'D-Up',
-            'dpadDown': 'D-Down',
-            'dpadLeft': 'D-Left',
-            'dpadRight': 'D-Right',
-            'buttonThumbL': 'L3',
-            'buttonThumbR': 'R3',
-            'buttonPlus': 'Plus',
-            'buttonMinus': 'Minus',
-            'buttonHome': 'Home',
-            'buttonCapture': 'Capture'
-        };
+		// Button display names
+		this.buttonDisplayNames = {
+			'buttonA': 'A',
+			'buttonB': 'B',
+			'buttonX': 'X',
+			'buttonY': 'Y',
+			'buttonL': 'L',
+			'buttonR': 'R',
+			'buttonZL': 'ZL',
+			'buttonZR': 'ZR',
+			'dpadUp': 'D-Up',
+			'dpadDown': 'D-Down',
+			'dpadLeft': 'D-Left',
+			'dpadRight': 'D-Right',
+			'buttonThumbL': 'L3',
+			'buttonThumbR': 'R3',
+			'buttonPlus': 'Plus',
+			'buttonMinus': 'Minus',
+			'buttonHome': 'Home',
+			'buttonCapture': 'Capture'
+		};
 
-        this.init();
-    }
+		this.init();
+	}
 
-    init() {
-        // Set up drag and drop
-        const dropZone = document.getElementById('dropZone');
-        if (dropZone) {
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('drag-over');
-            });
+	init() {
+		// Set up drag and drop
+		const dropZone = document.getElementById('dropZone');
+		if (dropZone) {
+			dropZone.addEventListener('dragover', (e) => {
+				e.preventDefault();
+				dropZone.classList.add('drag-over');
+			});
 
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('drag-over');
-            });
+			dropZone.addEventListener('dragleave', () => {
+				dropZone.classList.remove('drag-over');
+			});
 
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('drag-over');
-                
-                const file = e.dataTransfer.files[0];
-                if (file && file.type === 'application/json') {
-                    this.loadConfigFile(file);
-                }
-            });
-        }
+			dropZone.addEventListener('drop', (e) => {
+				e.preventDefault();
+				dropZone.classList.remove('drag-over');
 
-        // Load any existing configuration from localStorage
-        this.loadFromLocalStorage();
-    }
+				const file = e.dataTransfer.files[0];
+				if (file && file.type === 'application/json') {
+					this.loadConfigFile(file);
+				}
+			});
+		}
 
-    // Command Management
-    newCommand() {
-        if (this.isDirty && !confirm('You have unsaved changes. Create new command anyway?')) {
-            return;
-        }
+		// Load any existing configuration from localStorage
+		this.loadFromLocalStorage();
+	}
 
-        this.currentCommand = {
-            keywords: [],
-            cooldown: 1000,
-            userCooldown: 5000,
-            minDuration: 50,
-            maxDuration: 2000,
-            probability: 1.0,
-            exclusive: false,
-            actions: []
-        };
+	// Command Management
+	newCommand() {
+		if (this.isDirty && !confirm('You have unsaved changes. Create new command anyway?')) {
+			return;
+		}
 
-        this.currentCommandIndex = -1;
-        this.isDirty = false;
-        this.renderEditor();
-    }
+		this.currentCommand = {
+			keywords: [],
+			cooldown: 1000,
+			userCooldown: 5000,
+			minDuration: 50,
+			maxDuration: 2000,
+			probability: 1.0,
+			exclusive: false,
+			actions: []
+		};
 
-    loadCommand(index) {
-        if (this.isDirty && !confirm('You have unsaved changes. Load command anyway?')) {
-            return;
-        }
+		this.currentCommandIndex = -1;
+		this.isDirty = false;
+		this.renderEditor();
+	}
 
-        if (index >= 0 && index < this.commands.length) {
-            this.currentCommand = JSON.parse(JSON.stringify(this.commands[index])); // Deep clone
-            this.currentCommandIndex = index;
-            this.isDirty = false;
-            this.renderEditor();
-            this.updateCommandList();
-        }
-    }
+	loadCommand(index) {
+		if (this.isDirty && !confirm('You have unsaved changes. Load command anyway?')) {
+			return;
+		}
 
-    saveCommand() {
-        if (!this.validateCommand()) {
-            return;
-        }
+		if (index >= 0 && index < this.commands.length) {
+			this.currentCommand = JSON.parse(JSON.stringify(this.commands[index])); // Deep clone
+			this.currentCommandIndex = index;
+			this.isDirty = false;
+			this.renderEditor();
+			this.updateCommandList();
+		}
+	}
 
-        if (this.currentCommandIndex === -1) {
-            // New command
-            this.commands.push(JSON.parse(JSON.stringify(this.currentCommand)));
-            this.currentCommandIndex = this.commands.length - 1;
-        } else {
-            // Update existing
-            this.commands[this.currentCommandIndex] = JSON.parse(JSON.stringify(this.currentCommand));
-        }
+	saveCommand() {
+		if (!this.validateCommand()) {
+			return;
+		}
 
-        this.isDirty = false;
-        this.updateCommandList();
-        this.showStatus('Command saved successfully', 'success');
-        this.autoSave();
-    }
+		if (this.currentCommandIndex === -1) {
+			// New command
+			this.commands.push(JSON.parse(JSON.stringify(this.currentCommand)));
+			this.currentCommandIndex = this.commands.length - 1;
+		} else {
+			// Update existing
+			this.commands[this.currentCommandIndex] = JSON.parse(JSON.stringify(this.currentCommand));
+		}
 
-    deleteCommand() {
-        if (this.currentCommandIndex === -1) {
-            return;
-        }
+		this.isDirty = false;
+		this.updateCommandList();
+		this.showStatus('Command saved successfully', 'success');
+		this.autoSave();
+	}
 
-        if (!confirm('Are you sure you want to delete this command?')) {
-            return;
-        }
+	deleteCommand() {
+		if (this.currentCommandIndex === -1) {
+			return;
+		}
 
-        this.commands.splice(this.currentCommandIndex, 1);
-        this.currentCommand = null;
-        this.currentCommandIndex = -1;
-        this.isDirty = false;
-        
-        this.updateCommandList();
-        this.renderEditor();
-        this.showStatus('Command deleted', 'success');
-        this.autoSave();
-    }
+		if (!confirm('Are you sure you want to delete this command?')) {
+			return;
+		}
 
-    validateCommand() {
-        if (!this.currentCommand) {
-            this.showStatus('No command to save', 'error');
-            return false;
-        }
+		this.commands.splice(this.currentCommandIndex, 1);
+		this.currentCommand = null;
+		this.currentCommandIndex = -1;
+		this.isDirty = false;
 
-        if (this.currentCommand.keywords.length === 0) {
-            this.showStatus('Command must have at least one keyword', 'error');
-            return false;
-        }
+		this.updateCommandList();
+		this.renderEditor();
+		this.showStatus('Command deleted', 'success');
+		this.autoSave();
+	}
 
-        if (this.currentCommand.actions.length === 0) {
-            this.showStatus('Command must have at least one action', 'error');
-            return false;
-        }
+	validateCommand() {
+		if (!this.currentCommand) {
+			this.showStatus('No command to save', 'error');
+			return false;
+		}
 
-        // Validate durations
-        if (this.currentCommand.minDuration > this.currentCommand.maxDuration) {
-            this.showStatus('Minimum duration cannot be greater than maximum duration', 'error');
-            return false;
-        }
+		if (this.currentCommand.keywords.length === 0) {
+			this.showStatus('Command must have at least one keyword', 'error');
+			return false;
+		}
 
-        return true;
-    }
+		if (this.currentCommand.actions.length === 0) {
+			this.showStatus('Command must have at least one action', 'error');
+			return false;
+		}
 
-    // Keyword Management
-    addKeyword(keyword) {
-        if (!keyword || !keyword.trim()) return;
-        
-        keyword = keyword.trim().toLowerCase();
-        if (!this.currentCommand.keywords.includes(keyword)) {
-            this.currentCommand.keywords.push(keyword);
-            this.isDirty = true;
-            this.renderKeywords();
-        }
-    }
+		// Validate durations
+		if (this.currentCommand.minDuration > this.currentCommand.maxDuration) {
+			this.showStatus('Minimum duration cannot be greater than maximum duration', 'error');
+			return false;
+		}
 
-    removeKeyword(index) {
-        this.currentCommand.keywords.splice(index, 1);
-        this.isDirty = true;
-        this.renderKeywords();
-    }
+		return true;
+	}
 
-    // Action Management
-    addAction() {
-        const action = {
-            digital: {},
-            analog: {},
-            duration: 100
-        };
+	// Keyword Management
+	addKeyword(keyword) {
+		if (!keyword || !keyword.trim()) return;
 
-        this.currentCommand.actions.push(action);
-        this.isDirty = true;
-        this.renderActions();
-    }
+		keyword = keyword.trim().toLowerCase();
+		if (!this.currentCommand.keywords.includes(keyword)) {
+			this.currentCommand.keywords.push(keyword);
+			this.isDirty = true;
+			this.renderKeywords();
+		}
+	}
 
-    updateAction(index, field, value) {
-        if (index >= 0 && index < this.currentCommand.actions.length) {
-            if (field === 'duration') {
-                // Ensure duration is in 50ms increments and capped at 2000
-                value = Math.round(value / 50) * 50;
-                value = Math.min(2000, Math.max(50, value));
-            }
-            this.currentCommand.actions[index][field] = value;
-            this.isDirty = true;
-        }
-    }
+	removeKeyword(index) {
+		this.currentCommand.keywords.splice(index, 1);
+		this.isDirty = true;
+		this.renderKeywords();
+	}
 
-    removeAction(index) {
-        this.currentCommand.actions.splice(index, 1);
-        this.isDirty = true;
-        this.renderActions();
-    }
+	// Action Management
+	addAction() {
+		const action = {
+			digital: {},
+			analog: {},
+			duration: 100
+		};
 
-    moveAction(index, direction) {
-        const newIndex = index + direction;
-        if (newIndex >= 0 && newIndex < this.currentCommand.actions.length) {
-            const temp = this.currentCommand.actions[index];
-            this.currentCommand.actions[index] = this.currentCommand.actions[newIndex];
-            this.currentCommand.actions[newIndex] = temp;
-            this.isDirty = true;
-            this.renderActions();
-        }
-    }
+		this.currentCommand.actions.push(action);
+		this.isDirty = true;
+		this.renderActions();
+	}
 
-    // UI Rendering
-    renderEditor() {
-        const container = document.getElementById('editorContent');
-        if (!this.currentCommand) {
-            container.innerHTML = `
+	updateAction(index, field, value) {
+		if (index >= 0 && index < this.currentCommand.actions.length) {
+			if (field === 'duration') {
+				// Ensure duration is in 50ms increments and capped at 2000
+				value = Math.round(value / 50) * 50;
+				value = Math.min(2000, Math.max(50, value));
+			}
+			this.currentCommand.actions[index][field] = value;
+			this.isDirty = true;
+		}
+	}
+
+	removeAction(index) {
+		this.currentCommand.actions.splice(index, 1);
+		this.isDirty = true;
+		this.renderActions();
+	}
+
+	moveAction(index, direction) {
+		const newIndex = index + direction;
+		if (newIndex >= 0 && newIndex < this.currentCommand.actions.length) {
+			const temp = this.currentCommand.actions[index];
+			this.currentCommand.actions[index] = this.currentCommand.actions[newIndex];
+			this.currentCommand.actions[newIndex] = temp;
+			this.isDirty = true;
+			this.renderActions();
+		}
+	}
+
+	// UI Rendering
+	renderEditor() {
+		const container = document.getElementById('editorContent');
+		if (!this.currentCommand) {
+			container.innerHTML = `
                 <div class="empty-state">
                     <h4>No Command Selected</h4>
                     <p>Select a command from the list or create a new one to get started</p>
                 </div>
             `;
-            return;
-        }
+			return;
+		}
 
-        container.innerHTML = `
+		container.innerHTML = `
             <div class="form-section">
                 <h3>Command Settings</h3>
                 
@@ -334,36 +334,36 @@ class CommandEditor {
             </div>
         `;
 
-        this.renderKeywords();
-        this.renderActions();
-    }
+		this.renderKeywords();
+		this.renderActions();
+	}
 
-    renderKeywords() {
-        const container = document.getElementById('keywordsContainer');
-        if (!container) return;
+	renderKeywords() {
+		const container = document.getElementById('keywordsContainer');
+		if (!container) return;
 
-        container.innerHTML = this.currentCommand.keywords.map((keyword, index) => `
+		container.innerHTML = this.currentCommand.keywords.map((keyword, index) => `
             <div class="keyword-tag">
                 ${keyword}
                 <button onclick="commandEditor.removeKeyword(${index})">×</button>
             </div>
         `).join('');
-    }
+	}
 
-    renderActions() {
-        const container = document.getElementById('actionsContainer');
-        if (!container) return;
+	renderActions() {
+		const container = document.getElementById('actionsContainer');
+		if (!container) return;
 
-        if (this.currentCommand.actions.length === 0) {
-            container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 20px;">No actions yet. Add one to get started!</p>';
-            return;
-        }
+		if (this.currentCommand.actions.length === 0) {
+			container.innerHTML = '<p style="color: #9ca3af; text-align: center; padding: 20px;">No actions yet. Add one to get started!</p>';
+			return;
+		}
 
-        container.innerHTML = this.currentCommand.actions.map((action, index) => this.renderAction(action, index)).join('');
-    }
+		container.innerHTML = this.currentCommand.actions.map((action, index) => this.renderAction(action, index)).join('');
+	}
 
-    renderAction(action, index) {
-        return `
+	renderAction(action, index) {
+		return `
             <div class="action-item">
                 <div class="action-header">
                     <span class="action-number">Action ${index + 1}</span>
@@ -428,198 +428,185 @@ class CommandEditor {
                 </div>
             </div>
         `;
-    }
+	}
 
-    updateCommandField(field, value) {
-        this.currentCommand[field] = value;
-        this.isDirty = true;
+	updateCommandField(field, value) {
+		this.currentCommand[field] = value;
+		this.isDirty = true;
 
-        // Validate duration fields
-        if (field === 'minDuration' || field === 'maxDuration') {
-            const min = this.currentCommand.minDuration;
-            const max = this.currentCommand.maxDuration;
-            
-            if (min > max) {
-                if (field === 'minDuration') {
-                    this.currentCommand.maxDuration = min;
-                } else {
-                    this.currentCommand.minDuration = max;
-                }
-                this.renderEditor();
-            }
-        }
-    }
+		// Validate duration fields
+		if (field === 'minDuration' || field === 'maxDuration') {
+			const min = this.currentCommand.minDuration;
+			const max = this.currentCommand.maxDuration;
 
-    toggleButton(actionIndex, button) {
-        const action = this.currentCommand.actions[actionIndex];
-        if (action.digital[button]) {
-            delete action.digital[button];
-        } else {
-            action.digital[button] = true;
-        }
-        this.isDirty = true;
-        this.renderActions();
-    }
+			if (min > max) {
+				if (field === 'minDuration') {
+					this.currentCommand.maxDuration = min;
+				} else {
+					this.currentCommand.minDuration = max;
+				}
+				this.renderEditor();
+			}
+		}
+	}
 
-    updateAnalog(actionIndex, stick, value) {
-        const action = this.currentCommand.actions[actionIndex];
-        if (value === 0) {
-            delete action.analog[stick];
-        } else {
-            action.analog[stick] = value;
-        }
-        this.isDirty = true;
-    }
+	toggleButton(actionIndex, button) {
+		const action = this.currentCommand.actions[actionIndex];
+		if (action.digital[button]) {
+			delete action.digital[button];
+		} else {
+			action.digital[button] = true;
+		}
+		this.isDirty = true;
+		this.renderActions();
+	}
 
-    updateCommandList() {
-        const container = document.getElementById('commandList');
-        if (!container) return;
+	updateAnalog(actionIndex, stick, value) {
+		const action = this.currentCommand.actions[actionIndex];
+		if (value === 0) {
+			delete action.analog[stick];
+		} else {
+			action.analog[stick] = value;
+		}
+		this.isDirty = true;
+	}
 
-        if (this.commands.length === 0) {
-            container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 20px;">No commands yet</p>';
-            return;
-        }
+	updateCommandList() {
+		const container = document.getElementById('commandList');
+		if (!container) return;
 
-        container.innerHTML = this.commands.map((cmd, index) => `
+		if (this.commands.length === 0) {
+			container.innerHTML = '<p style="text-align: center; color: #9ca3af; padding: 20px;">No commands yet</p>';
+			return;
+		}
+
+		container.innerHTML = this.commands.map((cmd, index) => `
             <div class="command-item ${index === this.currentCommandIndex ? 'active' : ''}" 
                  onclick="commandEditor.loadCommand(${index})">
                 <strong>Command ${index + 1}</strong>
                 <div class="command-item-keywords">${cmd.keywords.join(', ')}</div>
             </div>
         `).join('');
-    }
+	}
 
-    // Configuration Management
-    publishConfig() {
-        const configName = document.getElementById('configName').value.trim();
-        if (!configName) {
-            this.showStatus('Please enter a configuration name', 'error');
-            return;
-        }
+	// Configuration Management
+	publishConfig() {
+		if (this.isDirty) {
+			this.showStatus('Please save your current command before publishing', 'error');
+			return;
+		}
 
-        if (this.isDirty) {
-            this.showStatus('Please save your current command before publishing', 'error');
-            return;
-        }
+		const config = {
+			name: "default",
+			timestamp: new Date().toISOString(),
+			commands: this.commands
+		};
 
-        const config = {
-            name: configName,
-            timestamp: new Date().toISOString(),
-            commands: this.commands
-        };
+		// Save to localStorage
+		localStorage.setItem(`chatConfig_default`, JSON.stringify(config));
 
-        // Save to localStorage
-        localStorage.setItem(`twitchChatConfig_${configName}`, JSON.stringify(config));
-        
-        // If TwitchChatConfigs is available (in the same window), update it
-        if (window.TwitchChatConfigs) {
-            window.TwitchChatConfigs.saveConfig(configName, config);
-        }
+		// If TwitchChatConfigs is available (in the same window), update it
+		if (window.TwitchChatConfigs) {
+			window.TwitchChatConfigs.saveConfig("default", config);
+		}
 
-        this.showStatus(`Configuration "${configName}" published successfully!`, 'success');
-    }
+		this.showStatus(`Configuration published successfully!`, 'success');
+	}
 
-    exportConfig() {
-        const configName = document.getElementById('configName').value.trim() || 'twitch-config';
-        
-        if (this.isDirty) {
-            this.showStatus('Please save your current command before exporting', 'error');
-            return;
-        }
+	exportConfig() {
+		const config = {
+			name: configName,
+			timestamp: new Date().toISOString(),
+			commands: this.commands
+		};
 
-        const config = {
-            name: configName,
-            timestamp: new Date().toISOString(),
-            commands: this.commands
-        };
+		const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `${configName.replace(/\s+/g, '-')}.json`;
+		a.click();
+		URL.revokeObjectURL(url);
 
-        const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${configName.replace(/\s+/g, '-')}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+		this.showStatus('Configuration exported successfully!', 'success');
+	}
 
-        this.showStatus('Configuration exported successfully!', 'success');
-    }
+	importConfig(event) {
+		const file = event.target.files[0];
+		if (file) {
+			this.loadConfigFile(file);
+		}
+	}
 
-    importConfig(event) {
-        const file = event.target.files[0];
-        if (file) {
-            this.loadConfigFile(file);
-        }
-    }
+	loadConfigFile(file) {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const config = JSON.parse(e.target.result);
 
-    loadConfigFile(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const config = JSON.parse(e.target.result);
-                
-                // Validate the config structure
-                if (!config.commands || !Array.isArray(config.commands)) {
-                    throw new Error('Invalid configuration format');
-                }
+				// Validate the config structure
+				if (!config.commands || !Array.isArray(config.commands)) {
+					throw new Error('Invalid configuration format');
+				}
 
-                // Load the commands
-                this.commands = config.commands;
-                this.currentCommand = null;
-                this.currentCommandIndex = -1;
-                this.isDirty = false;
+				// Load the commands
+				this.commands = config.commands;
+				this.currentCommand = null;
+				this.currentCommandIndex = -1;
+				this.isDirty = false;
 
-                // Update the config name if provided
-                if (config.name) {
-                    document.getElementById('configName').value = config.name;
-                }
+				// Update the config name if provided
+				if (config.name) {
+					document.getElementById('configName').value = config.name;
+				}
 
-                this.updateCommandList();
-                this.renderEditor();
-                this.showStatus('Configuration imported successfully!', 'success');
-            } catch (error) {
-                this.showStatus('Failed to import configuration: ' + error.message, 'error');
-            }
-        };
-        reader.readAsText(file);
-    }
+				this.updateCommandList();
+				this.renderEditor();
+				this.showStatus('Configuration imported successfully!', 'success');
+			} catch (error) {
+				this.showStatus('Failed to import configuration: ' + error.message, 'error');
+			}
+		};
+		reader.readAsText(file);
+	}
 
-    loadFromLocalStorage() {
-        // Try to load a default configuration
-        const saved = localStorage.getItem('twitchChatConfig_default');
-        if (saved) {
-            try {
-                const config = JSON.parse(saved);
-                this.commands = config.commands || [];
-                this.updateCommandList();
-            } catch (error) {
-                console.error('Failed to load saved configuration:', error);
-            }
-        }
-    }
+	loadFromLocalStorage() {
+		// Try to load a default configuration
+		const saved = localStorage.getItem('chatConfig_default');
+		if (saved) {
+			try {
+				const config = JSON.parse(saved);
+				this.commands = config.commands || [];
+				this.updateCommandList();
+			} catch (error) {
+				console.error('Failed to load saved configuration:', error);
+			}
+		}
+	}
 
-    autoSave() {
-        if (this.commands.length > 0) {
-            const config = {
-                name: 'default',
-                timestamp: new Date().toISOString(),
-                commands: this.commands
-            };
-            localStorage.setItem('twitchChatConfig_default', JSON.stringify(config));
-        }
-    }
+	autoSave() {
+		if (this.commands.length > 0) {
+			const config = {
+				name: 'default',
+				timestamp: new Date().toISOString(),
+				commands: this.commands
+			};
+			localStorage.setItem('chatConfig_default', JSON.stringify(config));
+		}
+	}
 
-    showStatus(message, type = 'success') {
-        const container = document.getElementById('statusMessage');
-        if (!container) return;
+	showStatus(message, type = 'success') {
+		const container = document.getElementById('statusMessage');
+		if (!container) return;
 
-        container.className = `status-message ${type}`;
-        container.textContent = message;
-        container.style.display = 'block';
+		container.className = `status-message ${type}`;
+		container.textContent = message;
+		container.style.display = 'block';
 
-        setTimeout(() => {
-            container.style.display = 'none';
-        }, 5000);
-    }
+		setTimeout(() => {
+			container.style.display = 'none';
+		}, 5000);
+	}
 }
 
 // Initialize the editor
@@ -627,64 +614,64 @@ const commandEditor = new CommandEditor();
 
 // Auto-save every 30 seconds
 setInterval(() => {
-    commandEditor.autoSave();
+	commandEditor.autoSave();
 }, 30000);
 
 // Warn before leaving if there are unsaved changes
 window.addEventListener('beforeunload', (e) => {
-    if (commandEditor.isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-    }
+	if (commandEditor.isDirty) {
+		e.preventDefault();
+		e.returnValue = '';
+	}
 });
 
 // Initialize TwitchChatConfigs if it doesn't exist (for standalone testing)
 if (!window.TwitchChatConfigs) {
-    window.TwitchChatConfigs = {
-        configs: new Map(),
-        listeners: new Set(),
-        
-        saveConfig(name, config) {
-            this.configs.set(name, config);
-            localStorage.setItem(`twitchChatConfig_${name}`, JSON.stringify(config));
-            this.notifyListeners(name, config);
-        },
-        
-        loadConfig(name) {
-            if (this.configs.has(name)) {
-                return this.configs.get(name);
-            }
-            const saved = localStorage.getItem(`twitchChatConfig_${name}`);
-            return saved ? JSON.parse(saved) : null;
-        },
-        
-        deleteConfig(name) {
-            this.configs.delete(name);
-            localStorage.removeItem(`twitchChatConfig_${name}`);
-            this.notifyListeners(name, null);
-        },
-        
-        listConfigs() {
-            const configs = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.startsWith('twitchChatConfig_')) {
-                    configs.push(key.replace('twitchChatConfig_', ''));
-                }
-            }
-            return configs;
-        },
-        
-        addListener(callback) {
-            this.listeners.add(callback);
-        },
-        
-        removeListener(callback) {
-            this.listeners.delete(callback);
-        },
-        
-        notifyListeners(name, config) {
-            this.listeners.forEach(callback => callback(name, config));
-        }
-    };
+	window.TwitchChatConfigs = {
+		configs: new Map(),
+		listeners: new Set(),
+
+		saveConfig(name, config) {
+			this.configs.set(name, config);
+			localStorage.setItem(`chatConfig_${name}`, JSON.stringify(config));
+			this.notifyListeners(name, config);
+		},
+
+		loadConfig(name) {
+			if (this.configs.has(name)) {
+				return this.configs.get(name);
+			}
+			const saved = localStorage.getItem(`chatConfig_${name}`);
+			return saved ? JSON.parse(saved) : null;
+		},
+
+		deleteConfig(name) {
+			this.configs.delete(name);
+			localStorage.removeItem(`chatConfig_${name}`);
+			this.notifyListeners(name, null);
+		},
+
+		listConfigs() {
+			const configs = [];
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key.startsWith('chatConfig_')) {
+					configs.push(key.replace('chatConfig_', ''));
+				}
+			}
+			return configs;
+		},
+
+		addListener(callback) {
+			this.listeners.add(callback);
+		},
+
+		removeListener(callback) {
+			this.listeners.delete(callback);
+		},
+
+		notifyListeners(name, config) {
+			this.listeners.forEach(callback => callback(name, config));
+		}
+	};
 }

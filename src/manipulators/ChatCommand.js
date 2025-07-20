@@ -11,13 +11,13 @@ if (!window.chatConfigs) {
 	window.chatConfigs = {
 		configs: new Map(),
 		listeners: new Set(),
-		
+
 		saveConfig(name, config) {
 			this.configs.set(name, config);
 			localStorage.setItem(`chatConfig_${name}`, JSON.stringify(config));
 			this.notifyListeners(name, config);
 		},
-		
+
 		loadConfig(name) {
 			if (this.configs.has(name)) {
 				return this.configs.get(name);
@@ -25,25 +25,25 @@ if (!window.chatConfigs) {
 			const saved = localStorage.getItem(`chatConfig_${name}`);
 			return saved ? JSON.parse(saved) : null;
 		},
-		
+
 		deleteConfig(name) {
 			this.configs.delete(name);
 			localStorage.removeItem(`chatConfig_${name}`);
 			this.notifyListeners(name, null);
 		},
-		
+
 		listConfigs() {
 			return Array.from(this.configs.keys());
 		},
-		
+
 		addListener(callback) {
 			this.listeners.add(callback);
 		},
-		
+
 		removeListener(callback) {
 			this.listeners.delete(callback);
 		},
-		
+
 		notifyListeners(name, config) {
 			this.listeners.forEach(callback => callback(name, config));
 		}
@@ -75,24 +75,25 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	constructor(params = {}) {
 		super(params);
-		
+
 		this.channel = params.channel || '';
 		this.maxMessages = params.maxMessages || 50;
 		this.configName = params.configName || 'default';
 		this.processInOrder = params.processInOrder || false;
-		
+		this.maxDuration = 2000; // maximum duration that a command can run for
+
 		// WebSocket connection
 		this.ws = null;
 		this.connected = false;
 		this.reconnectTimeout = null;
 		this.pingInterval = null;
 		this.manualDisconnect = false; // Track if disconnect was manual
-		
+
 		// Message buffer - now only stores messages with keywords
 		this.messages = [];
 		this.displayedMessages = new Map(); // messageId -> { element, expireTime }
 		this.messageIdCounter = 0;
-		
+
 		// Command processing
 		this.commandQueue = [];
 		this.activeConfig = null;
@@ -102,7 +103,7 @@ export class ChatCommand extends BaseManipulator {
 		this.currentCommandIndex = 0;
 		this.currentCommandStartTime = 0;
 		this.frameCounter = 0; // Count frames at 50ms intervals
-		
+
 		// UI elements
 		this._channelInput = null;
 		this._connectButton = null;
@@ -130,9 +131,12 @@ export class ChatCommand extends BaseManipulator {
 
 		// Register chat-specific actions
 		this._registerChatActions();
-		
+
 		// Start message expiration timer
 		this._startExpirationTimer();
+
+		// Auto-connect if channel name provided
+		if (this.channel) this.connect(this.channel);
 	}
 
 	/**
@@ -150,7 +154,7 @@ export class ChatCommand extends BaseManipulator {
 	_removeExpiredMessages() {
 		const now = Date.now();
 		const expiredIds = [];
-		
+
 		for (const [messageId, messageData] of this.displayedMessages) {
 			if (now >= messageData.expireTime) {
 				// Remove from DOM
@@ -160,7 +164,7 @@ export class ChatCommand extends BaseManipulator {
 				expiredIds.push(messageId);
 			}
 		}
-		
+
 		// Clean up expired entries
 		expiredIds.forEach(id => this.displayedMessages.delete(id));
 	}
@@ -188,7 +192,7 @@ export class ChatCommand extends BaseManipulator {
 			name: 'setInOrder',
 			displayName: 'Set in-order processing',
 			description: 'Controls whether messages are handled in order or randomly',
-			handler: (params) => {this.processInOrder = params.enabled;}
+			handler: (params) => { this.processInOrder = params.enabled; }
 		});
 
 		this.registerAction({
@@ -252,12 +256,12 @@ export class ChatCommand extends BaseManipulator {
 		if (config) {
 			this.activeConfig = config;
 			this.configName = configName;
-			
+
 			// Update UI
 			if (this._configSelect) {
 				this._configSelect.value = configName;
 			}
-			
+
 			this.log(`Loaded configuration: ${configName}`);
 			return true;
 		} else {
@@ -284,11 +288,11 @@ export class ChatCommand extends BaseManipulator {
 		this.channel = channel.toLowerCase().replace('#', '');
 		this.manualDisconnect = false; // Reset manual disconnect flag
 		this.log(`Connecting to channel: ${this.channel}`);
-		
+
 		try {
 			// Connect to Twitch IRC via WebSocket
 			this.ws = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
-			
+
 			this.ws.onopen = () => {
 				this.log('WebSocket connected');
 				// Authenticate as anonymous user
@@ -296,10 +300,10 @@ export class ChatCommand extends BaseManipulator {
 				this.ws.send('PASS SCHMOOPIIE');
 				this.ws.send(`NICK justinfan${Math.floor(Math.random() * 100000)}`);
 				this.ws.send(`JOIN #${this.channel}`);
-				
+
 				this.connected = true;
 				this._updateConnectionStatus();
-				
+
 				// Start ping interval to keep connection alive
 				this.pingInterval = setInterval(() => {
 					if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -307,27 +311,27 @@ export class ChatCommand extends BaseManipulator {
 					}
 				}, 60000); // Ping every minute
 			};
-			
+
 			this.ws.onmessage = (event) => {
 				this._handleMessage(event.data);
 			};
-			
+
 			this.ws.onerror = (error) => {
 				this.log(`WebSocket error: ${error}`);
 				this._updateConnectionStatus();
 			};
-			
+
 			this.ws.onclose = () => {
 				this.log('WebSocket disconnected');
 				this.connected = false;
 				this._updateConnectionStatus();
-				
+
 				// Clear ping interval
 				if (this.pingInterval) {
 					clearInterval(this.pingInterval);
 					this.pingInterval = null;
 				}
-				
+
 				// Auto-reconnect only if we didn't manually disconnect and manipulator is enabled
 				if (this.channel && this.enabled && !this.manualDisconnect) {
 					this.reconnectTimeout = setTimeout(() => {
@@ -336,12 +340,12 @@ export class ChatCommand extends BaseManipulator {
 					}, 5000);
 				}
 			};
-			
+
 			// Update UI
 			if (this._channelInput) {
 				this._channelInput.value = this.channel;
 			}
-			
+
 			return true;
 		} catch (error) {
 			this.log(`Failed to connect: ${error.message}`);
@@ -354,31 +358,31 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	disconnect() {
 		this.log('Disconnecting from Twitch chat');
-		
+
 		// Set manual disconnect flag to prevent auto-reconnect
 		this.manualDisconnect = true;
-		
+
 		// Clear reconnect timeout
 		if (this.reconnectTimeout) {
 			clearTimeout(this.reconnectTimeout);
 			this.reconnectTimeout = null;
 		}
-		
+
 		// Clear ping interval
 		if (this.pingInterval) {
 			clearInterval(this.pingInterval);
 			this.pingInterval = null;
 		}
-		
+
 		// Close WebSocket
 		if (this.ws) {
 			this.ws.close();
 			this.ws = null;
 		}
-		
+
 		this.connected = false;
 		this._updateConnectionStatus();
-		
+
 		return true;
 	}
 
@@ -387,7 +391,7 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	clearMessages() {
 		this.messages = [];
-		
+
 		// Clear displayed messages
 		for (const [messageId, messageData] of this.displayedMessages) {
 			if (messageData.element && messageData.element.parentNode) {
@@ -395,7 +399,7 @@ export class ChatCommand extends BaseManipulator {
 			}
 		}
 		this.displayedMessages.clear();
-		
+
 		if (this._messageContainer) {
 			this._messageContainer.innerHTML = '';
 		}
@@ -423,16 +427,16 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	_handleMessage(rawMessage) {
 		const lines = rawMessage.split('\r\n');
-		
+
 		for (const line of lines) {
 			if (!line) continue;
-			
+
 			// Handle PING
 			if (line.startsWith('PING')) {
 				this.ws.send('PONG :tmi.twitch.tv');
 				continue;
 			}
-			
+
 			// Parse PRIVMSG (chat messages)
 			if (line.includes('PRIVMSG')) {
 				const match = line.match(/ :([^!]+)!.*PRIVMSG #\w+ :(.+)/);
@@ -441,7 +445,7 @@ export class ChatCommand extends BaseManipulator {
 					this._processMessage(username, message);
 				}
 			}
-			
+
 			// Handle JOIN confirmation
 			if (line.includes('JOIN') && line.includes(this.channel)) {
 				this.log(`Successfully joined #${this.channel}`);
@@ -462,11 +466,12 @@ export class ChatCommand extends BaseManipulator {
 
 		const foundKeywords = [];
 		const messageLower = message.toLowerCase();
-		
+
 		// Check each command for matching keywords
 		for (const command of this.activeConfig.commands) {
 			for (const keyword of command.keywords) {
-				if (messageLower.includes(keyword.toLowerCase())) {
+				const keywordRegex = new RegExp(`\\b${keyword.toLowerCase()}\\b`, 'i');
+				if (keywordRegex.test(messageLower)) {
 					foundKeywords.push(keyword);
 					break; // Only need one keyword match per command
 				}
@@ -483,17 +488,17 @@ export class ChatCommand extends BaseManipulator {
 				timestamp: Date.now(),
 				handled: false
 			};
-			
+
 			this.messages.push(messageData);
-			
+
 			// Trim old messages
 			while (this.messages.length > this.maxMessages) {
 				this.messages.shift();
 			}
-			
+
 			// Add to display
 			this._addMessageToDisplay(messageData);
-			
+
 			// Add to command queue
 			this.commandQueue.push({
 				id: messageData.id,
@@ -501,7 +506,7 @@ export class ChatCommand extends BaseManipulator {
 				keywords: foundKeywords,
 				timestamp: Date.now()
 			});
-			
+
 			this._updateQueueDisplay();
 		}
 	}
@@ -512,30 +517,30 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	_addMessageToDisplay(messageData) {
 		if (!this._messageContainer) return;
-		
+
 		const messageEl = document.createElement('div');
 		messageEl.className = 'chat-message';
 		messageEl.dataset.messageId = messageData.id;
-		
+
 		const usernameEl = document.createElement('span');
 		usernameEl.className = 'chat-username';
 		usernameEl.textContent = messageData.username;
-		
+
 		const keywordsEl = document.createElement('span');
 		keywordsEl.className = 'chat-keywords';
 		keywordsEl.textContent = ': ' + messageData.keywords.join(', ');
-		
+
 		messageEl.appendChild(usernameEl);
 		messageEl.appendChild(keywordsEl);
-		
+
 		this._messageContainer.appendChild(messageEl);
-		
+
 		// Auto-scroll to bottom
 		this._messageContainer.scrollTop = this._messageContainer.scrollHeight;
-		
+
 		// Set expiration time (3 seconds from now)
 		const expireTime = Date.now() + 3000;
-		
+
 		// Store for expiration tracking
 		this.displayedMessages.set(messageData.id, {
 			element: messageEl,
@@ -552,7 +557,7 @@ export class ChatCommand extends BaseManipulator {
 		if (messageData && messageData.element) {
 			messageData.element.classList.add('handled');
 		}
-		
+
 		// Also mark in messages array
 		const message = this.messages.find(msg => msg.id === messageId);
 		if (message) {
@@ -577,7 +582,7 @@ export class ChatCommand extends BaseManipulator {
 			this._statusIndicator.textContent = this.connected ? '● Connected' : '○ Disconnected';
 			this._statusIndicator.className = 'twitch-status ' + (this.connected ? 'connected' : 'disconnected');
 		}
-		
+
 		if (this._connectButton) {
 			this._connectButton.textContent = this.connected ? 'Disconnect' : 'Connect';
 		}
@@ -585,11 +590,11 @@ export class ChatCommand extends BaseManipulator {
 
 	_processInternal(state, deltaTime) {
 		const now = Date.now();
-		
+
 		// Check if we need to start a new command
-		if (this.currentCommandStates.length === 0 || 
+		if (this.currentCommandStates.length === 0 ||
 			this.currentCommandIndex >= this.currentCommandStates.length) {
-			
+
 			// Keep at most 60 entries
 			if (this.commandQueue.length > 60)
 				this.commandQueue = this.commandQueue.slice(-60);
@@ -597,7 +602,7 @@ export class ChatCommand extends BaseManipulator {
 			this.commandQueue = this.commandQueue.filter(
 				entry => now - entry.timestamp < 3000
 			);
-			
+
 			// Get next command from queue
 			if (this.commandQueue.length > 0) {
 				const entry = this._selectFromQueue();
@@ -605,18 +610,18 @@ export class ChatCommand extends BaseManipulator {
 					this._startCommand(entry, now);
 				}
 			}
-			
+
 			this._updateQueueDisplay();
 		}
-		
+
 		// Apply current command state if we have one
-		if (this.currentCommandStates.length > 0 && 
+		if (this.currentCommandStates.length > 0 &&
 			this.currentCommandIndex < this.currentCommandStates.length) {
-			
+
 			// Merge command state with incoming state
 			const commandState = this.currentCommandStates[this.currentCommandIndex];
 			state = this._mergeStates(state, commandState);
-			
+
 			// Advance to next frame every 50ms
 			this.frameCounter += deltaTime;
 			if (this.frameCounter >= 50) {
@@ -624,7 +629,7 @@ export class ChatCommand extends BaseManipulator {
 				this.currentCommandIndex++;
 			}
 		}
-		
+
 		return state;
 	}
 
@@ -634,7 +639,7 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	_selectFromQueue() {
 		if (this.commandQueue.length === 0) return null;
-		
+
 		let entry;
 		if (this.processInOrder) {
 			// Take first entry
@@ -644,12 +649,12 @@ export class ChatCommand extends BaseManipulator {
 			const index = Math.floor(Math.random() * this.commandQueue.length);
 			entry = this.commandQueue.splice(index, 1)[0];
 		}
-		
+
 		// Highlight the selected message
 		if (entry && entry.id) {
 			this._highlightMessage(entry.id);
 		}
-		
+
 		return entry;
 	}
 
@@ -660,7 +665,7 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	_startCommand(entry, now) {
 		if (!this.activeConfig) return;
-		
+
 		// Find all matching commands
 		const matchingCommands = [];
 		for (const keyword of entry.keywords) {
@@ -674,25 +679,25 @@ export class ChatCommand extends BaseManipulator {
 				}
 			}
 		}
-		
+
 		if (matchingCommands.length === 0) return;
-		
+
 		// Check for exclusive commands
 		const exclusiveCommand = matchingCommands.find(cmd => cmd.exclusive);
 		const commandsToProcess = exclusiveCommand ? [exclusiveCommand] : matchingCommands;
-		
+
 		// Calculate initial command duration based on queue fill.
 		// Assume that the goal is to stretch the remaining commands
-		// over 1600 ms, but give each one at least 50 ms.
-		let desiredDuration = Math.max(1600 / this.commandQueue.length, 50);
-		
+		// over 80% of the max duration, but give each one at least 50 ms.
+		let desiredDuration = Math.max((this.maxDuration * 0.8) / this.commandQueue.length, 50);
+
 		// Check if any commands require a longer time.
 		for (const command of commandsToProcess) {
 			desiredDuration = Math.max(desiredDuration, command.minDuration);
 		}
-		
-		// Cap at two seconds.
-		desiredDuration = Math.min(desiredDuration, 2000);
+
+		// Cap at max duration.
+		desiredDuration = Math.min(desiredDuration, this.maxDuration);
 
 		// Initialize state array (one state per 50ms frame)
 		const frameCount = Math.ceil(desiredDuration / 50);
@@ -703,19 +708,19 @@ export class ChatCommand extends BaseManipulator {
 				analog: {}
 			});
 		}
-		
+
 		// Apply each command to the state array
 		for (const command of commandsToProcess) {
 			// Check probability
 			if (Math.random() > command.probability) continue;
-			
+
 			// Update cooldowns
 			this._updateCooldowns(command, entry.username, now);
-			
+
 			// Apply actions to state array
 			this._applyCommandToStates(command);
 		}
-		
+
 		// Reset playback
 		this.currentCommandIndex = 0;
 		this.currentCommandStartTime = now;
@@ -736,14 +741,14 @@ export class ChatCommand extends BaseManipulator {
 		if (now - lastUsed < command.cooldown) {
 			return false;
 		}
-		
+
 		// Check user cooldown
 		const userCooldowns = this.userCooldowns.get(username) || {};
 		const userLastUsed = userCooldowns[commandKey] || 0;
 		if (now - userLastUsed < command.userCooldown) {
 			return false;
 		}
-		
+
 		return true;
 	}
 
@@ -755,10 +760,10 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	_updateCooldowns(command, username, now) {
 		const commandKey = command.keywords[0];
-		
+
 		// Update global cooldown
 		this.commandCooldowns.set(commandKey, now);
-		
+
 		// Update user cooldown
 		const userCooldowns = this.userCooldowns.get(username) || {};
 		userCooldowns[commandKey] = now;
@@ -778,11 +783,11 @@ export class ChatCommand extends BaseManipulator {
 			for (const action of command.actions) {
 				// How many frames this action gets applied to
 				const actionFrameCount = Math.ceil(action.duration / 50);
-				
+
 				// Apply to frames
 				for (let i = 0; (i < actionFrameCount) && (currentFrame < maxFrameCount); i++) {
 					const stateFrame = this.currentCommandStates[currentFrame];
-					
+
 					// Merge digital states (OR)
 					if (action.digital) {
 						for (const [button, value] of Object.entries(action.digital)) {
@@ -791,17 +796,17 @@ export class ChatCommand extends BaseManipulator {
 							}
 						}
 					}
-					
+
 					// Merge analog states (most extreme)
 					if (action.analog) {
 						for (const [stick, value] of Object.entries(action.analog)) {
-							if (!stateFrame.analog[stick] || 
+							if (!stateFrame.analog[stick] ||
 								Math.abs(value) > Math.abs(stateFrame.analog[stick])) {
 								stateFrame.analog[stick] = value;
 							}
 						}
 					}
-					
+
 					currentFrame++;
 				}
 			}
@@ -821,7 +826,7 @@ export class ChatCommand extends BaseManipulator {
 				controllerState.digital[button] = true;
 			}
 		}
-		
+
 		// Use most extreme analog values
 		for (const [stick, value] of Object.entries(commandState.analog)) {
 			// Map to controller state names
@@ -833,13 +838,13 @@ export class ChatCommand extends BaseManipulator {
 				case 'stickRY': controllerKey = 'rightY'; break;
 				default: continue;
 			}
-			
-			if (!controllerState.analog[controllerKey] || 
+
+			if (!controllerState.analog[controllerKey] ||
 				Math.abs(value) > Math.abs(controllerState.analog[controllerKey])) {
 				controllerState.analog[controllerKey] = value;
 			}
 		}
-		
+
 		return controllerState;
 	}
 
@@ -1035,15 +1040,15 @@ export class ChatCommand extends BaseManipulator {
 				this._channelInput.value = this.channel;
 			}
 		}
-		
+
 		if (config.maxMessages !== undefined) {
 			this.setMaxMessages(config.maxMessages);
 		}
-		
+
 		if (config.configName !== undefined) {
 			this.loadConfiguration(config.configName);
 		}
-		
+
 		if (config.processInOrder !== undefined) {
 			this.setProcessOrder(config.processInOrder);
 		}
@@ -1066,12 +1071,12 @@ export class ChatCommand extends BaseManipulator {
 
 	dispose() {
 		super.dispose();
-		
+
 		// Remove config listener
 		if (this._configChangeHandler) {
 			window.chatConfigs.removeListener(this._configChangeHandler);
 		}
-		
+
 		this.disconnect();
 		this.messages = [];
 		this.commandQueue = [];
@@ -1079,7 +1084,7 @@ export class ChatCommand extends BaseManipulator {
 		this.userCooldowns.clear();
 		this.commandCooldowns.clear();
 		this.displayedMessages.clear();
-		
+
 		this._channelInput = null;
 		this._connectButton = null;
 		this._statusIndicator = null;

@@ -415,7 +415,7 @@ class SerialComm {
  * @property {() => void}      [onDisconnect]      - called once when the port is lost
  * @property {(message: string) => void} [onMessage] - called for each complete message received
  * @property {boolean} [autoInterrogate=true]      - automatically query device info on connect
- * @property {number} [interrogateTimeout=2000]    - timeout for device interrogation in ms
+ * @property {number} [interrogateTimeout=1000]    - timeout for device interrogation in ms
  */
 
 /**
@@ -488,22 +488,65 @@ export class SwiCCSink {
 		if (!this._port) {
 			throw new Error('[SwiCCSink] No port selected; call requestPort() first.');
 		}
+		
+		let portOpened = false;
+		let commSetup = false;
+		let readingStarted = false;
+		
 		try {
 			await this._port.open(this.serialOptions);
+			portOpened = true;
+			
 			this.comm.setPort(this._port);
+			commSetup = true;
+			
 			this._isConnected = true;
 
 			// Start reading automatically when port opens
 			this.comm.startReading(this._handleMessage.bind(this), this._handleReadError);
+			readingStarted = true;
 
 			console.log('[SwiCCSink] Connected to device');
 
 			// Automatically interrogate device if enabled
 			if (this.autoInterrogate) {
-				await this._interrogateDevice();
+				try {
+					await this._interrogateDevice();
+				} catch (interrogationErr) {
+					// If interrogation fails, clean up and re-throw
+					console.error('[SwiCCSink] Device interrogation failed during initialization:', interrogationErr);
+					throw interrogationErr;
+				}
 			}
 		} catch (err) {
 			console.error('[SwiCCSink] Failed to open port:', err);
+			
+			// Clean up in reverse order of what was set up
+			this._isConnected = false;
+			
+			if (readingStarted || commSetup) {
+				try {
+					await this.comm.disconnect();
+				} catch (_) { 
+					// Ignore cleanup errors
+				}
+			}
+			
+			if (portOpened && this._port) {
+				try {
+					await this._port.close();
+				} catch (_) { 
+					// Ignore cleanup errors
+				}
+			}
+			
+			// Reset state
+			this._port = null;
+			this._deviceId = null;
+			this._deviceVersion = null;
+			this._isInterrogated = false;
+			this._cleanupInterrogation();
+			
 			throw err;
 		}
 	}
@@ -540,8 +583,7 @@ export class SwiCCSink {
 		} catch (err) {
 			console.warn('[SwiCCSink] send failed—assuming port lost:', err);
 			// clean up writer + port
-			await this.comm.disconnect();
-			this._isConnected = false;
+			await this._fullCleanup();
 			// notify caller exactly once
 			try { this.onDisconnect(); } catch (_) { }
 		}
@@ -565,8 +607,7 @@ export class SwiCCSink {
 		} catch (err) {
 			console.warn('[SwiCCSink] sendMessage failed—assuming port lost:', err);
 			// clean up writer + port
-			await this.comm.disconnect();
-			this._isConnected = false;
+			await this._fullCleanup();
 			// notify caller exactly once
 			try { this.onDisconnect(); } catch (_) { }
 		}
@@ -589,8 +630,7 @@ export class SwiCCSink {
 		} catch (err) {
 			console.warn('[SwiCCSink] sendBytes failed—assuming port lost:', err);
 			// clean up writer + port
-			await this.comm.disconnect();
-			this._isConnected = false;
+			await this._fullCleanup();
 			// notify caller exactly once
 			try { this.onDisconnect(); } catch (_) { }
 		}
@@ -603,6 +643,15 @@ export class SwiCCSink {
 	async disconnect() {
 		if (!this._isConnected) return;
 
+		await this._fullCleanup();
+		this.logMessage('Disconnected from device');
+	}
+
+	/**
+	 * Internal method to perform complete cleanup of all resources.
+	 * @private
+	 */
+	async _fullCleanup() {
 		// Clean up any ongoing interrogation
 		this._cleanupInterrogation();
 
@@ -611,14 +660,17 @@ export class SwiCCSink {
 		this._deviceVersion = null;
 		this._isInterrogated = false;
 
+		// Remove event listener
 		navigator.serial.removeEventListener('disconnect', this._handlePortDisconnect);
+
 		try {
 			await this.comm.disconnect();
-			this.logMessage('Disconnected from device');
 		} catch (err) {
-			this.logMessage('disconnect() error:', err);
+			console.warn('[SwiCCSink] comm.disconnect() error:', err);
 		}
+
 		this._isConnected = false;
+		this._port = null;
 	}
 
 	/**
@@ -818,18 +870,7 @@ export class SwiCCSink {
 	_handlePortDisconnect(event) {
 		if (event.port === this._port) {
 			this.logMessage('[SwiCCSink] Detected physical disconnect.');
-
-			// Clean up any ongoing interrogation
-			this._cleanupInterrogation();
-
-			// Reset device info
-			this._deviceId = null;
-			this._deviceVersion = null;
-			this._isInterrogated = false;
-
-			// tidy up in case send() wasn't in flight
-			this.comm.disconnect().catch(() => { });
-			this._isConnected = false;
+			this._fullCleanup().catch(() => { });
 			try { this.onDisconnect(); } catch (_) { }
 		}
 	}
@@ -841,18 +882,7 @@ export class SwiCCSink {
 	 */
 	_handleReadError(error) {
 		this.logMessage('[SwiCCSink] Read error:' + error);
-
-		// Clean up any ongoing interrogation
-		this._cleanupInterrogation();
-
-		// Reset device info
-		this._deviceId = null;
-		this._deviceVersion = null;
-		this._isInterrogated = false;
-
-		// Treat read errors as disconnection
-		this.comm.disconnect().catch(() => { });
-		this._isConnected = false;
+		this._fullCleanup().catch(() => { });
 		try { this.onDisconnect(); } catch (_) { }
 	}
 }
