@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Bot Configuration</title>
+	<link rel="stylesheet" href="../style.css">
+	<style>
+		/* Bot Configuration Specific Styles */
+		:root {
+			--config-tab-height: 40px;
+			--config-item-padding: 10px;
+			--config-border-radius: 4px;
+			--config-transition: all 0.3s ease;
+		}
+
+		.config-tabs {
+			display: flex;
+			border-bottom: 2px solid var(--border-color, #444);
+			margin-bottom: 20px;
+		}
+
+		.config-tab {
+			padding: var(--config-item-padding) 20px;
+			background: var(--panel-bg, #2a2a2a);
+			border: none;
+			color: var(--text-color, #fff);
+			cursor: pointer;
+			border-bottom: 3px solid transparent;
+			transition: var(--config-transition);
+		}
+
+		.config-tab.active {
+			border-bottom-color: var(--accent-color, #00ff88);
+			background: var(--panel-bg-hover, #333);
+		}
+
+		.config-tab:hover {
+			background: var(--panel-bg-hover, #333);
+		}
+
+		.tab-content {
+			display: none;
+		}
+
+		.tab-content.active {
+			display: block;
+		}
+
+		.item-list {
+			max-height: 300px;
+			overflow-y: auto;
+			border: 1px solid var(--border-color, #444);
+			border-radius: var(--config-border-radius);
+			margin-bottom: 15px;
+		}
+
+		.item-entry {
+			padding: var(--config-item-padding);
+			border-bottom: 1px solid var(--border-color, #444);
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			background: var(--panel-bg, #2a2a2a);
+			cursor: pointer;
+			transition: var(--config-transition);
+		}
+
+		.item-entry:last-child {
+			border-bottom: none;
+		}
+
+		.item-entry:hover {
+			background: var(--panel-bg-hover, #333);
+		}
+
+		.item-entry.selected {
+			background: var(--accent-color-dim, #004433);
+		}
+
+		.item-info {
+			flex: 1;
+		}
+
+		.item-name {
+			font-weight: bold;
+			margin-bottom: 5px;
+		}
+
+		.item-details {
+			font-size: 0.9em;
+			color: var(--text-secondary, #bbb);
+		}
+
+		.form-grid {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 15px;
+			margin-bottom: 20px;
+		}
+
+		.form-group {
+			display: flex;
+			flex-direction: column;
+			gap: 5px;
+		}
+
+		.form-group.full-width {
+			grid-column: 1 / -1;
+		}
+
+		.keyword-container {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 5px;
+			min-height: 40px;
+			padding: 8px;
+			border: 1px solid var(--border-color, #444);
+			border-radius: var(--config-border-radius);
+			background: var(--input-bg, #1a1a1a);
+		}
+
+		.keyword-tag {
+			display: flex;
+			align-items: center;
+			background: var(--accent-color, #00ff88);
+			color: var(--bg-color, #000);
+			padding: 4px 8px;
+			border-radius: 12px;
+			font-size: 0.85em;
+			gap: 5px;
+		}
+
+		.keyword-weight {
+			background: rgba(0, 0, 0, 0.3);
+			padding: 2px 6px;
+			border-radius: 8px;
+			font-size: 0.8em;
+		}
+
+		.keyword-remove {
+			background: none;
+			border: none;
+			color: inherit;
+			cursor: pointer;
+			font-weight: bold;
+			padding: 0;
+			margin-left: 4px;
+		}
+
+		.keyword-input-container {
+			display: flex;
+			gap: 5px;
+			margin-top: 10px;
+		}
+
+		.weight-mapping {
+			display: grid;
+			grid-template-columns: 1fr auto auto auto;
+			gap: 10px;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.weight-input {
+			width: 80px;
+		}
+
+		.validation-error {
+			color: var(--danger-color, #ff4444);
+			font-size: 0.85em;
+			margin-top: 5px;
+		}
+
+		.bot-status {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+			gap: 15px;
+			margin-bottom: 20px;
+		}
+
+		.status-card {
+			background: var(--panel-bg, #2a2a2a);
+			border: 1px solid var(--border-color, #444);
+			border-radius: var(--config-border-radius);
+			padding: 15px;
+		}
+
+		.status-title {
+			font-weight: bold;
+			margin-bottom: 10px;
+			color: var(--accent-color, #00ff88);
+		}
+
+		.status-value {
+			font-size: 1.2em;
+			margin-bottom: 5px;
+		}
+
+		.config-actions {
+			display: flex;
+			gap: 10px;
+			margin-bottom: 20px;
+			flex-wrap: wrap;
+		}
+
+		.form-actions {
+			display: flex;
+			gap: 10px;
+			margin-top: 15px;
+		}
+
+		.form-disabled {
+			opacity: 0.5;
+			pointer-events: none;
+		}
+
+		.form-disabled input,
+		.form-disabled button,
+		.form-disabled select,
+		.form-disabled textarea {
+			background-color: var(--input-bg-disabled, #0f0f0f) !important;
+			color: var(--text-disabled, #666) !important;
+			cursor: not-allowed !important;
+		}
+
+		.selection-message {
+			background: var(--panel-bg-hover, #333);
+			border: 1px solid var(--border-color, #444);
+			border-radius: var(--config-border-radius);
+			padding: 20px;
+			text-align: center;
+			color: var(--text-secondary, #bbb);
+			font-style: italic;
+			margin-bottom: 15px;
+		}
+
+		.selection-message.hidden {
+			display: none;
+		}
+
+		/* New GLaMS Connection Styles */
+		.connection-controls {
+			display: grid;
+			grid-template-columns: 1fr auto auto;
+			gap: 10px;
+			align-items: end;
+			margin-bottom: 15px;
+		}
+
+		.connection-status {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 10px;
+		}
+
+		.connection-indicator {
+			width: 12px;
+			height: 12px;
+			border-radius: 50%;
+			background: var(--danger-color, #ff4444);
+			transition: var(--config-transition);
+		}
+
+		.connection-indicator.connected {
+			background: var(--accent-color, #00ff88);
+		}
+
+		.bot-controls {
+			display: flex;
+			gap: 10px;
+			margin-top: 15px;
+		}
+
+		.bot-running {
+			color: var(--accent-color, #00ff88);
+			font-weight: bold;
+		}
+
+		.bot-stopped {
+			color: var(--text-secondary, #bbb);
+		}
+	</style>
+</head>
+
+<body>
+	<div class="container">
+		<div class="header">
+			<h1>Bot Configuration</h1>
+			<p>Configure GLaMS2 Bot Behavior</p>
+		</div>
+
+		<div class="main-content">
+			<div class="left stack">
+				<!-- Bot Status -->
+				<div class="panel">
+					<h2>Bot Status</h2>
+					<div class="bot-status" id="botStatus">
+						<!-- Status cards will be populated by JavaScript -->
+					</div>
+					<div class="bot-controls">
+						<button class="button" id="startBotBtn" disabled>Start Bot</button>
+						<button class="button secondary" id="stopBotBtn" disabled>Stop Bot</button>
+						<span id="botRunningStatus" class="bot-stopped">Bot Stopped</span>
+					</div>
+				</div>
+				<div class="panel">
+					<!-- GLaMS Connection Controls -->
+					<h2>GLaMS Connection</h2>
+					<div class="connection-status">
+						<div class="connection-indicator" id="connectionIndicator"></div>
+						<span id="connectionStatus">Disconnected</span>
+					</div>
+					<div class="connection-controls">
+						<div class="form-group">
+							<label>Room Name:</label>
+							<input type="text" id="roomName" placeholder="Enter room name" value="">
+						</div>
+						<div class="form-group">
+							<label>Method:</label>
+							<select id="connectionMethod">
+								<option value="browser">Browser</option>
+								<option value="websocket">WebSocket</option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group">
+						<button class="button" id="connectBtn">Connect</button>
+						<button class="button secondary" id="disconnectBtn" disabled>Disconnect</button>
+					</div>
+					<div class="form-actions">
+						<label>Manipulator ID:</label>
+						<input type="text" id="manipulatorId" value="ChatCommand-1" placeholder="ChatCommand-1">
+					</div>
+				</div>
+
+				<!-- Configuration Actions -->
+				<div class="panel">
+					<h2>Save/Load</h2>
+					<div class="config-actions">
+						<button class="button secondary" id="exportConfigBtn">Export to File</button>
+						<button class="button secondary" id="importConfigBtn">Import from File</button>
+						<button class="button danger" id="resetConfigBtn">Reset All</button>
+					</div>
+					<input type="file" id="importFileInput" accept=".json" style="display: none;">
+				</div>
+			</div>
+			<div class="right stack">
+				<!-- Configuration Tabs -->
+				<div class="panel">
+					<div class="config-tabs">
+						<button class="config-tab active" data-tab="globalSettings">Global Settings</button>
+						<button class="config-tab" data-tab="commandGroups">Command Groups</button>
+						<button class="config-tab" data-tab="strategies">Strategies</button>
+					</div>
+
+					<!-- Global Settings Tab -->
+					<div class="tab-content active" id="globalSettings">
+						<div class="form-grid">
+							<div class="form-group">
+								<label>Base message interval (ms):</label>
+								<input type="number" id="globalCooldown" min="0" value="100">
+							</div>
+							<div class="form-group">
+								<label>Strategy Minimum Time (ms):</label>
+								<input type="number" id="globalStrategyMinTime" min="0" value="10000">
+							</div>
+						</div>
+						<button class="button" id="saveGlobalSettingsBtn">Save Global Settings</button>
+					</div>
+
+					<!-- Command Groups Tab -->
+					<div class="tab-content" id="commandGroups">
+						<!-- List View -->
+						<div id="commandGroupsListView">
+							<h3>Command Groups</h3>
+							<div class="item-list" id="commandGroupsList">
+								<!-- Command groups will be populated here -->
+							</div>
+							<button class="button" id="addCommandGroupBtn">Add New Group</button>
+						</div>
+
+						<!-- Edit View -->
+						<div id="commandGroupsEditView" style="display: none;">
+							<div class="form-actions" style="margin-bottom: 20px;">
+								<button class="button secondary" id="backToGroupsListBtn">← Back to Groups</button>
+							</div>
+
+							<h3 id="commandGroupEditTitle">Edit Command Group</h3>
+
+							<div class="form-group">
+								<label>Group Name:</label>
+								<input type="text" id="groupName" placeholder="Enter group name">
+							</div>
+
+							<div class="form-group">
+								<label>Cooldown (ms):</label>
+								<input type="number" id="groupCooldown" min="0" value="0">
+							</div>
+
+							<div class="form-grid">
+								<div class="form-group">
+									<label>Minimum Keywords:</label>
+									<input type="number" id="groupMinKeywords" min="1" value="1">
+								</div>
+								<div class="form-group">
+									<label>Maximum Keywords:</label>
+									<input type="number" id="groupMaxKeywords" min="1" value="1">
+								</div>
+							</div>
+
+							<div class="form-group">
+								<div class="keyword-input-container">
+									<input type="text" id="keywordInput" placeholder="New keyword">
+									<label style="align-content: center;">Weight:</label>
+									<input type="number" id="keywordWeight" placeholder="Weight" min="0.1" step="0.1"
+										value="1">
+									<button class="button secondary" id="addKeywordBtn">Add</button>
+								</div>
+								<label>Current keywords:</label>
+								<div class="keyword-container" id="keywordContainer">
+									<!-- Keywords will be displayed here as tags -->
+								</div>
+							</div>
+
+							<div class="form-actions">
+								<button class="button" id="saveGroupBtn">Save Group</button>
+								<button class="button danger" id="deleteGroupBtn">Delete Group</button>
+							</div>
+							<div class="validation-error" id="groupValidationError"></div>
+						</div>
+					</div>
+
+					<!-- Strategies Tab -->
+					<div class="tab-content" id="strategies">
+						<!-- List View -->
+						<div id="strategiesListView">
+							<h3>Strategies</h3>
+							<div class="item-list" id="strategiesList">
+								<!-- Strategies will be populated here -->
+							</div>
+							<button class="button" id="addStrategyBtn">Add New Strategy</button>
+						</div>
+
+						<!-- Edit View -->
+						<div id="strategiesEditView" style="display: none;">
+							<div class="form-actions" style="margin-bottom: 20px;">
+								<button class="button secondary" id="backToStrategiesListBtn">← Back to
+									Strategies</button>
+							</div>
+
+							<h3 id="strategyEditTitle">Edit Strategy</h3>
+
+							<div class="form-grid">
+								<div class="form-group">
+									<label>Strategy Name:</label>
+									<input type="text" id="strategyName" placeholder="Enter strategy name">
+								</div>
+								<div class="form-group">
+									<label>Selection Weight:</label>
+									<input type="number" id="strategySwitchWeight" min="0.1" step="0.1" value="1">
+								</div>
+							</div>
+
+							<div class="form-grid">
+								<div class="form-group">
+									<label>Minimum Run Time (ms):</label>
+									<input type="number" id="strategyMinTime" min="0" value="10000">
+								</div>
+								<div class="form-group">
+									<label>Cooldown (ms):</label>
+									<input type="number" id="strategyCooldown" min="0" value="0">
+								</div>
+							</div>
+
+							<div class="form-grid">
+								<div class="form-group">
+									<label>Minimum Groups per Message:</label>
+									<input type="number" id="strategyMinGroups" min="1" value="1">
+								</div>
+								<div class="form-group">
+									<label>Maximum Groups per Message:</label>
+									<input type="number" id="strategyMaxGroups" min="1" value="1">
+								</div>
+							</div>
+
+							<div class="form-group">
+								<label>Group Weights:</label>
+								<div id="groupWeightContainer">
+									<!-- Group weights will be displayed here -->
+								</div>
+							</div>
+
+							<div class="form-actions">
+								<button class="button" id="saveStrategyBtn">Save Strategy</button>
+								<button class="button danger" id="deleteStrategyBtn">Delete Strategy</button>
+							</div>
+							<div class="validation-error" id="strategyValidationError"></div>
+						</div>
+					</div>
+
+				</div>
+			</div>
+			<!-- Messages Panel -->
+			<div class="messages">
+				<h3>System Messages</h3>
+				<div id="messageLog"></div>
+			</div>
+		</div>
+	</div>
+
+	<script type="module" src="../src/utils/GLaMSController.js"></script>
+	<script type="module" src="./chat-bot.js"></script>
+</body>
+
+</html>

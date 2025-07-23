@@ -32,7 +32,7 @@
 					<div class="swicc-connection" data-swicc-id="0">
 						<div class="swicc-header">
 							<h3>SwiCC #1</h3>
-							<span class="swicc-status" id="swiccStatus0">Disconnected</span>
+							<span class="connection-status" id="swiccStatus0">Disconnected</span>
 						</div>
 						<div class="swicc-controls">
 							<button class="button" id="connectBtn0">
@@ -56,7 +56,7 @@
 						<div class="swicc-connection" data-swicc-id="1">
 							<div class="swicc-header">
 								<h3>SwiCC #2</h3>
-								<span class="swicc-status" id="swiccStatus1">Disconnected</span>
+								<span class="connection-status" id="swiccStatus1">Disconnected</span>
 							</div>
 							<div class="swicc-controls">
 								<button class="button" id="connectBtn1">
@@ -71,7 +71,7 @@
 						<div class="swicc-connection" data-swicc-id="2">
 							<div class="swicc-header">
 								<h3>SwiCC #3</h3>
-								<span class="swicc-status" id="swiccStatus2">Disconnected</span>
+								<span class="connection-status" id="swiccStatus2">Disconnected</span>
 							</div>
 							<div class="swicc-controls">
 								<button class="button" id="connectBtn2">
@@ -86,7 +86,7 @@
 						<div class="swicc-connection" data-swicc-id="3">
 							<div class="swicc-header">
 								<h3>SwiCC #4</h3>
-								<span class="swicc-status" id="swiccStatus3">Disconnected</span>
+								<span class="connection-status" id="swiccStatus3">Disconnected</span>
 							</div>
 							<div class="swicc-controls">
 								<button class="button" id="connectBtn3">
@@ -180,6 +180,57 @@
 
 				<div class="panel">
 					<h2>External Control</h2>
+					<!-- Room Configuration -->
+					<div class="config-section">
+						<div class="room-controls">
+							<div class="function-enables">
+								<label class="checkbox-label">
+									<input type="checkbox" id="enableBrowserMessaging">
+									<span class="checkmark"></span>
+									Browser Messaging
+								</label>
+								<label class="checkbox-label">
+									<input type="checkbox" id="enableWebSocket">
+									<span class="checkmark"></span>
+									WebSocket
+								</label>
+							</div>
+							<input type="text" id="roomNameInput" placeholder="Enter room name..." maxlength="50">
+							<button class="button" id="connectExternalBtn" disabled>Connect to Room</button>
+							<button class="button danger" id="disconnectExternalBtn" disabled>Disconnect</button>
+						</div>
+					</div>
+
+					<!-- Connection Status -->
+					<div class="config-section">
+						<h3>Connection Status</h3>
+						<div class="status-container">
+							<div>
+								<span class="status-label">Browser Messaging: </span>
+								<span class="connection-status disconnected"
+									id="browserMessagingStatus">Disconnected</span>
+							</div>
+							<div>
+								<span class="status-label">WebSocket: </span>
+								<span class="connection-status disconnected" id="websocketStatus">Disconnected</span>
+							</div>
+						</div>
+					</div>
+
+					<!-- Message Statistics -->
+					<div class="config-section">
+						<h3>Message Statistics</h3>
+						<div id="externalControlStats" class="stats-container">
+							<div class="stat-item">
+								<span class="stat-label">Messages Received:</span>
+								<span class="stat-value">0</span>
+							</div>
+							<div class="stat-item">
+								<span class="stat-label">Last Message:</span>
+								<span class="stat-value">None</span>
+							</div>
+						</div>
+					</div>
 				</div>
 			</div>
 
@@ -213,7 +264,7 @@
 				<div class="panel">
 					<h2>Controller Display Settings</h2>
 					<div class="broadcast-controls">
-						<div class="broadcast-enable">
+						<div class="function-enables">
 							<label class="checkbox-label">
 								<input type="checkbox" id="broadcastEnabled" checked>
 								<span class="checkmark"></span>
@@ -222,8 +273,16 @@
 						</div>
 
 						<div class="info-box">
-							<p>Inner and outer button highlighting gets captured at the pipeline positions set below.
-								Default is before any manipulation and after all manipulation.
+							<p>Controller data gets displayed on a separate page (opened with button below). The display
+								can show two sets of controller state: one using the "inner" highlighting on the buttons
+								and one using the "outer" highlighting.
+							</p>
+							<p>Inner and outer button highlighting gets captured at the pipeline positions set here. The
+								default is before any manipulation and after all manipulation, but the positions can be
+								moved if desired.
+							</p>
+							<p>If you are using multiple GLaMS pages, it is recommended to only enable input display
+								broadcasting from one of them.
 							</p>
 						</div>
 
@@ -253,7 +312,14 @@
 
 			<!-- Messages Panel -->
 			<div class="messages">
-				<h3>System Messages</h3>
+				<div class="inline-with-gap">
+					<h3>System Messages</h3>
+					<label class="checkbox-label" style="margin-left: auto;">
+						<input type="checkbox" id="messagesEnabled" checked="" value="true">
+						<span class="checkmark"></span>
+						Enable Messages
+					</label>
+				</div>
 				<div id="messageLog"></div>
 			</div>
 		</div>

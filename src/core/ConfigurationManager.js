@@ -239,7 +239,7 @@ export class ConfigurationManager {
 				timestamp: new Date().toISOString(),
 				version: '1.0',
 				pipeline: this.getCurrentPipelineConfig(),
-				broadcast: this.pipeline.getBroadcastConfig()
+				broadcast: this.pipeline.getBroadcastConfig(),
 			};
 
 			// Create and download file

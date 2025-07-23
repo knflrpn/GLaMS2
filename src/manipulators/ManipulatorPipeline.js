@@ -199,7 +199,7 @@ export class ManipulatorPipeline {
 		// Emit registration event
 		this._emit('registered', {
 			manipulator,
-			type: manipulator.constructor.type,
+			type: manipulator.constructor.name,
 			index: this.manipulators.length - 1
 		});
 
@@ -226,7 +226,7 @@ export class ManipulatorPipeline {
 		// Emit registration event
 		this._emit('registered', {
 			manipulator,
-			type: manipulator.constructor.type,
+			type: manipulator.constructor.name,
 			index: index
 		});
 
@@ -250,7 +250,7 @@ export class ManipulatorPipeline {
 			// Emit unregistration event
 			this._emit('unregistered', {
 				manipulator,
-				type: manipulator.constructor.type,
+				type: manipulator.constructor.name,
 				previousIndex: index
 			});
 		}
@@ -274,7 +274,7 @@ export class ManipulatorPipeline {
 			// Emit unregistration event
 			this._emit('unregistered', {
 				manipulator,
-				type: manipulator.constructor.type,
+				type: manipulator.constructor.name,
 				previousIndex: index
 			});
 		}
@@ -336,7 +336,7 @@ export class ManipulatorPipeline {
 	 * @returns {BaseManipulator[]}
 	 */
 	getByType(type) {
-		return this.manipulators.filter(m => m.constructor.type === type);
+		return this.manipulators.filter(m => m.constructor.name === type);
 	}
 
 	/**
@@ -360,7 +360,7 @@ export class ManipulatorPipeline {
 		// Find the Nth manipulator of this type
 		let count = 0;
 		for (const manipulator of this.manipulators) {
-			if (manipulator.constructor.type === type) {
+			if (manipulator.constructor.name === type) {
 				count++;
 				if (count === index) {
 					return manipulator;
@@ -377,11 +377,11 @@ export class ManipulatorPipeline {
 	 * @returns {string|null} ID like "turbo-1" or null if not found
 	 */
 	getId(manipulator) {
-		const type = manipulator.constructor.type;
+		const type = manipulator.constructor.name;
 		let count = 0;
 
 		for (const m of this.manipulators) {
-			if (m.constructor.type === type) {
+			if (m.constructor.name === type) {
 				count++;
 				if (m === manipulator) {
 					return `${type}-${count}`;
@@ -401,7 +401,7 @@ export class ManipulatorPipeline {
 		const typeCounts = new Map();
 
 		for (const manipulator of this.manipulators) {
-			const type = manipulator.constructor.type;
+			const type = manipulator.constructor.name;
 			const count = (typeCounts.get(type) || 0) + 1;
 			typeCounts.set(type, count);
 
@@ -521,7 +521,7 @@ export class ManipulatorPipeline {
 
 		for (const manipulator of this.manipulators) {
 			if (predicate(manipulator)) {
-				const type = manipulator.constructor.type;
+				const type = manipulator.constructor.name;
 				const count = (typeCounts.get(type) || 0) + 1;
 				typeCounts.set(type, count);
 
@@ -531,7 +531,7 @@ export class ManipulatorPipeline {
 				});
 			} else {
 				// Still need to count even if not matching
-				const type = manipulator.constructor.type;
+				const type = manipulator.constructor.name;
 				const count = (typeCounts.get(type) || 0) + 1;
 				typeCounts.set(type, count);
 			}
@@ -711,7 +711,7 @@ export class ManipulatorPipeline {
 		const typeCounts = new Map();
 
 		for (const manipulator of this.manipulators) {
-			const type = manipulator.constructor.type;
+			const type = manipulator.constructor.name;
 			const count = (typeCounts.get(type) || 0) + 1;
 			typeCounts.set(type, count);
 

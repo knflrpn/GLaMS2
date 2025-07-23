@@ -12,6 +12,7 @@ import { ConnectionManager } from './core/ConnectionManager.js';
 import { ConfigurationManager } from './core/ConfigurationManager.js';
 import { PipelineManager } from './core/PipelineManager.js';
 import { BroadcastManager } from './core/BroadcastManager.js';
+import { ExternalControlManager } from './core/ExternalControlManager.js';
 
 /**
  * SwiCCApplication - Main application controller
@@ -86,6 +87,7 @@ class SwiCCApplication {
 		this.managers.pipeline = new PipelineManager(this.pipeline, this.managers.ui);
 		this.managers.broadcast = new BroadcastManager(this.pipeline, this.managers.ui);
 		this.managers.config = new ConfigurationManager(this.pipeline, this.managers.ui);
+		this.managers.external = new ExternalControlManager(this.pipeline, this.managers.ui);
 
 		this.managers.ui.logMessage('All managers created');
 	}
@@ -108,6 +110,9 @@ class SwiCCApplication {
 			this.managers.broadcast.updatePositionConstraints();
 		});
 
+		// Connect ExternalControlManager to PipelineManager
+		this.managers.external.setPipelineManager(this.managers.pipeline);
+
 		// Additional integrations can be added here
 		this.managers.ui.logMessage('Manager integration completed');
 	}
@@ -119,6 +124,7 @@ class SwiCCApplication {
 		// Initialize all manager UIs
 		this.managers.connection.initializeUI();
 		this.managers.config.initializeUI();
+		this.managers.external.initialize();
 
 		// Load default pipeline preset
 		this.loadPipelinePreset('default');
@@ -135,11 +141,11 @@ class SwiCCApplication {
 			default: {
 				name: 'Default',
 				description: 'Passthrough with controller display',
-				pipeline: [{ type: 'ChatCommand', config: {} }],
+				pipeline: [],
 			},
-			TwitchControl: {
-				name: 'Twitch Control',
-				description: 'Display and Twitch Chat control',
+			ChatControl: {
+				name: 'Chat Control',
+				description: 'Display and Chat control',
 				pipeline: [
 					{ type: 'ChatCommand', config: {} }
 				]
@@ -335,6 +341,7 @@ class SwiCCApplication {
 			pipeline: this.managers.pipeline.getStatistics(),
 			broadcast: this.managers.broadcast.getStatistics(),
 			config: this.managers.config.getStatistics(),
+			external: this.managers.external.getStatistics(),
 			gamepad: {
 				connected: this.gamepadCache.connected,
 				id: this.gamepadCache.id
@@ -376,6 +383,14 @@ class SwiCCApplication {
 			connectSwiCC: (id) => this.managers.connection.connectToSwiCC(id),
 			disconnectSwiCC: (id) => this.managers.connection.disconnectFromSwiCC(id),
 
+			// External control functions
+			connectToRoom: (room) => {
+				document.getElementById('roomNameInput').value = room;
+				this.managers.external.connectToRoom();
+			},
+			disconnectFromRoom: () => this.managers.external.disconnectFromRoom(),
+			sendExternalMessage: (message) => this.managers.external.processMessage(message),
+
 			// Debug utilities
 			clearLogs: () => this.managers.ui.elements.messageLog.innerHTML = '',
 			logMessage: (msg) => this.managers.ui.logMessage(msg)
@@ -392,6 +407,7 @@ class SwiCCApplication {
 			this.stopMonitoring();
 
 			// Dispose managers in reverse order
+			await this.managers.external?.dispose();
 			await this.managers.broadcast?.dispose();
 			await this.managers.config?.dispose();
 			await this.managers.pipeline?.dispose();

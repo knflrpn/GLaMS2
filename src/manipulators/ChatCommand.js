@@ -463,7 +463,6 @@ export class ChatCommand extends BaseManipulator {
 		if (!this.activeConfig) {
 			return;
 		}
-
 		const foundKeywords = [];
 		const messageLower = message.toLowerCase();
 
@@ -854,7 +853,7 @@ export class ChatCommand extends BaseManipulator {
 
 		// Connection controls
 		const connectionDiv = document.createElement('div');
-		connectionDiv.className = 'manipulator-control-group';
+		connectionDiv.className = 'manipulator-control-group inline-with-gap';
 
 		const channelLabel = document.createElement('label');
 		channelLabel.textContent = 'Channel: ';
@@ -883,10 +882,32 @@ export class ChatCommand extends BaseManipulator {
 		this._statusIndicator.className = 'twitch-status disconnected';
 		this._statusIndicator.textContent = '○ Disconnected';
 
+		const buttongrouper = document.createElement('div');
+		buttongrouper.className = 'inline-with-gap';
+
+		const editlink = document.createElement('button');
+		editlink.textContent = 'Edit Commands';
+		editlink.className = 'button secondary';
+		editlink.addEventListener('click', () => {
+			const url = './command-edit.html';
+			window.open(url, "_blank");
+		});
+
+		const reload = document.createElement('button');
+		reload.textContent = 'Reload Commands';
+		reload.className = 'button secondary';
+		reload.addEventListener('click', () => {
+			this.loadConfiguration(this.configName);
+		});
+
+		buttongrouper.appendChild(editlink);
+		buttongrouper.appendChild(reload);
+
 		connectionDiv.appendChild(channelLabel);
 		connectionDiv.appendChild(this._channelInput);
 		connectionDiv.appendChild(this._connectButton);
 		connectionDiv.appendChild(this._statusIndicator);
+		connectionDiv.appendChild(buttongrouper);
 
 		// Queue status
 		const queueDiv = document.createElement('div');
@@ -960,7 +981,7 @@ export class ChatCommand extends BaseManipulator {
 			}
 			.chat-queue-display {
 				font-weight: bold;
-				color: #9146ff;
+				color: #b584ffff;
 				padding: 5px;
 				background: rgba(145, 70, 255, 0.1);
 				border-radius: 4px;

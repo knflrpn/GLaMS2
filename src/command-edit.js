@@ -81,8 +81,8 @@ class CommandEditor {
 
 		this.currentCommand = {
 			keywords: [],
-			cooldown: 1000,
-			userCooldown: 5000,
+			cooldown: 0,
+			userCooldown: 0,
 			minDuration: 50,
 			maxDuration: 2000,
 			probability: 1.0,
@@ -262,7 +262,7 @@ class CommandEditor {
                         <input type="text" id="keywordInput" placeholder="Add keyword..." 
                                onkeypress="if(event.key==='Enter') { commandEditor.addKeyword(this.value); this.value=''; }">
                         <button class="button small" onclick="commandEditor.addKeyword(document.getElementById('keywordInput').value); document.getElementById('keywordInput').value='';">
-                            Add
+                            Add to list
                         </button>
                     </div>
                 </div>

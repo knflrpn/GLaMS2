@@ -6,7 +6,11 @@
  */
 export class UIManager {
 	constructor() {
+		this.messagesEnabled = true;
 		this.elements = this.getElements();
+		this.elements.messagesEnabled.addEventListener('change', () => {
+			this.messagesEnabled = this.elements.messagesEnabled.checked;
+		});
 		this.hideStatusTimeout = null;
 
 		// Initialize UI state
@@ -15,11 +19,21 @@ export class UIManager {
 	}
 
 	/**
+	 * Turn on or off system messages
+	 */
+	setEnabled(enable) {
+		this.messagesEnabled = enable;
+	}
+
+	/**
 	 * Get all DOM elements we'll need to manipulate
 	 * Centralizes element selection for better maintainability
 	 */
 	getElements() {
 		return {
+			// System messages elements
+			messagesEnabled: document.getElementById('messagesEnabled'),
+
 			// Status elements
 			serialStatus: document.getElementById('serialStatus'),
 			gamepadName: document.getElementById('gamepadName'),
@@ -50,6 +64,14 @@ export class UIManager {
 			toggleControlsIcon: document.getElementById('toggleControlsIcon'),
 			pipelineControls: document.getElementById('pipelineControls'),
 			pipelineContainer: document.getElementById('pipelineContainer'),
+
+			// External control elements
+			browserMessagingStatus: document.getElementById('browserMessagingStatus'),
+			websocketStatus: document.getElementById('websocketStatus'),
+			externalControlStats: document.getElementById('externalControlStats'),
+			roomNameInput: document.getElementById('roomNameInput'),
+			connectExternalBtn: document.getElementById('connectExternalBtn'),
+			disconnectExternalBtn: document.getElementById('disconnectExternalBtn'),
 
 			// Additional SwiCCs
 			addMoreSwiCCsBtn: document.getElementById('addMoreSwiCCsBtn'),
@@ -176,14 +198,64 @@ export class UIManager {
 				connectBtn.disabled = true;
 				disconnectBtn.disabled = false;
 				statusElement.textContent = 'Connected';
-				statusElement.className = 'swicc-status connected';
+				statusElement.className = 'connection-status connected';
 			} else {
 				connectBtn.disabled = false;
 				disconnectBtn.disabled = true;
 				statusElement.textContent = 'Disconnected';
-				statusElement.className = 'swicc-status disconnected';
+				statusElement.className = 'connection-status disconnected';
 			}
 		}
+	}
+
+	/**
+	 * Update external control connection status
+	 * @param {string} type - Connection type ('browser' or 'websocket')
+	 * @param {boolean} connected - Connection state
+	 */
+	updateExternalControlStatus(type, connected) {
+		let statusElement;
+
+		if (type === 'browser') {
+			statusElement = this.elements.browserMessagingStatus;
+		} else if (type === 'websocket') {
+			statusElement = this.elements.websocketStatus;
+		}
+
+		if (statusElement) {
+			statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+			statusElement.className = `connection-status ${connected ? 'connected' : 'disconnected'}`;
+		}
+	}
+
+	/**
+	 * Update external control statistics display
+	 * @param {Object} stats - Statistics object
+	 */
+	updateExternalControlStats(stats) {
+		if (!this.elements.externalControlStats) return;
+
+		const lastMessageDisplay = stats.lastMessage ?
+			JSON.stringify(stats.lastMessage).substring(0, 50) + '...' : 'None';
+
+		this.elements.externalControlStats.innerHTML = `
+			<div class="stat-item">
+				<span class="stat-label">Messages Received:</span>
+				<span class="stat-value">${stats.received}</span>
+			</div>
+			<div class="stat-item">
+				<span class="stat-label">Messages Processed:</span>
+				<span class="stat-value">${stats.processed}</span>
+			</div>
+			<div class="stat-item">
+				<span class="stat-label">Errors:</span>
+				<span class="stat-value">${stats.errors}</span>
+			</div>
+			<div class="stat-item">
+				<span class="stat-label">Last Message:</span>
+				<span class="stat-value">${lastMessageDisplay}</span>
+			</div>
+		`;
 	}
 
 	/**
@@ -228,18 +300,19 @@ export class UIManager {
 	 * @param {string} message - Message to log
 	 */
 	logMessage(message) {
+		if (!this.messagesEnabled) return;
+
 		const timestamp = new Date().toLocaleTimeString();
 		const messageDiv = document.createElement('div');
 		messageDiv.className = 'message';
 		messageDiv.innerHTML = `<span class="timestamp">[${timestamp}]</span>${message}`;
 
 		this.elements.messageLog.appendChild(messageDiv);
-		this.elements.messageLog.scrollTop = this.elements.messageLog.scrollHeight;
-
 		// Keep only last 50 messages to prevent memory issues
 		while (this.elements.messageLog.children.length > 50) {
 			this.elements.messageLog.removeChild(this.elements.messageLog.firstChild);
 		}
+		this.elements.messageLog.scrollTop = this.elements.messageLog.scrollHeight;
 	}
 
 	/**
@@ -249,20 +322,40 @@ export class UIManager {
 	updateConfigSelector(savedConfigs) {
 		this.elements.configSelector.innerHTML = '<option value="">Select saved configuration...</option>';
 
+		// Find the most recent configuration (regardless of name)
+		const mostRecentConfig = savedConfigs.length > 0
+			? savedConfigs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
+			: null;
+
+		let selectedValue = '';
+
 		savedConfigs.forEach(config => {
 			const option = document.createElement('option');
 			option.value = config.name;
 			option.textContent = `${config.name} (${new Date(config.timestamp).toLocaleDateString()})`;
+
+			// Select the most recent configuration
+			if (mostRecentConfig && config.name === mostRecentConfig.name) {
+				option.selected = true;
+				selectedValue = config.name;
+			}
+
 			this.elements.configSelector.appendChild(option);
 		});
+
+		// Update the selector's value to reflect the selection
+		if (selectedValue) {
+			this.elements.configSelector.value = selectedValue;
+		}
 
 		// Enable/disable buttons based on selection
 		const loadBtn = document.getElementById('loadConfigBtn');
 		const deleteBtn = document.getElementById('deleteConfigBtn');
 
 		if (loadBtn && deleteBtn) {
-			loadBtn.disabled = !this.elements.configSelector.value;
-			deleteBtn.disabled = !this.elements.configSelector.value;
+			const hasSelection = !!this.elements.configSelector.value;
+			loadBtn.disabled = !hasSelection;
+			deleteBtn.disabled = !hasSelection;
 		}
 	}
 
@@ -398,6 +491,576 @@ export class UIManager {
 	}
 
 	/**
+	 * Enable or disable an element
+	 * @param {string} elementId - ID of the element
+	 * @param {boolean} enabled - Whether to enable the element
+	 */
+	setElementEnabled(elementId, enabled) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.disabled = !enabled;
+		}
+	}
+
+	/**
+	 * Set checkbox state
+	 * @param {string} elementId - ID of the checkbox element
+	 * @param {boolean} checked - Whether to check the checkbox
+	 */
+	setCheckboxState(elementId, checked) {
+		const element = document.getElementById(elementId);
+		if (element && element.type === 'checkbox') {
+			element.checked = checked;
+		}
+	}
+
+	/**
+	 * Get checkbox state
+	 * @param {string} elementId - ID of the checkbox element
+	 * @returns {boolean} Checkbox state
+	 */
+	getCheckboxState(elementId) {
+		const element = document.getElementById(elementId);
+		return element && element.type === 'checkbox' ? element.checked : false;
+	}
+
+	/**
+	 * Update element text content safely
+	 * @param {string} elementId - ID of the element
+	 * @param {string} text - Text to set
+	 */
+	setElementText(elementId, text) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.textContent = text;
+		}
+	}
+
+	/**
+	 * Update element HTML content safely
+	 * @param {string} elementId - ID of the element
+	 * @param {string} html - HTML to set
+	 */
+	setElementHTML(elementId, html) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.innerHTML = html;
+		}
+	}
+
+	/**
+	 * Add CSS class to an element
+	 * @param {string} elementId - ID of the element
+	 * @param {string} className - Class name to add
+	 */
+	addElementClass(elementId, className) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.classList.add(className);
+		}
+	}
+
+	/**
+	 * Remove CSS class from an element
+	 * @param {string} elementId - ID of the element
+	 * @param {string} className - Class name to remove
+	 */
+	removeElementClass(elementId, className) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.classList.remove(className);
+		}
+	}
+
+	/**
+	 * Toggle CSS class on an element
+	 * @param {string} elementId - ID of the element
+	 * @param {string} className - Class name to toggle
+	 * @param {boolean} force - Force add (true) or remove (false), undefined for toggle
+	 */
+	toggleElementClass(elementId, className, force) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.classList.toggle(className, force);
+		}
+	}
+
+	/**
+	 * Show an element with optional animation
+	 * @param {string} elementId - ID of the element to show
+	 * @param {string} displayType - Display type to use (default: 'block')
+	 */
+	showElement(elementId, displayType = 'block') {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.style.display = displayType;
+		}
+	}
+
+	/**
+	 * Hide an element
+	 * @param {string} elementId - ID of the element to hide
+	 */
+	hideElement(elementId) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.style.display = 'none';
+		}
+	}
+
+	/**
+	 * Check if an element exists
+	 * @param {string} elementId - ID of the element
+	 * @returns {boolean} True if element exists
+	 */
+	elementExists(elementId) {
+		return document.getElementById(elementId) !== null;
+	}
+
+	/**
+	 * Focus on an element
+	 * @param {string} elementId - ID of the element to focus
+	 */
+	focusElement(elementId) {
+		const element = document.getElementById(elementId);
+		if (element && element.focus) {
+			element.focus();
+		}
+	}
+
+	/**
+	 * Scroll element into view
+	 * @param {string} elementId - ID of the element
+	 * @param {Object} options - Scroll options
+	 */
+	scrollElementIntoView(elementId, options = { behavior: 'smooth' }) {
+		const element = document.getElementById(elementId);
+		if (element && element.scrollIntoView) {
+			element.scrollIntoView(options);
+		}
+	}
+
+	/**
+	 * Create and append a child element
+	 * @param {string} parentId - ID of the parent element
+	 * @param {string} tagName - Tag name for the new element
+	 * @param {Object} options - Options for the new element
+	 * @returns {HTMLElement|null} The created element or null
+	 */
+	appendChild(parentId, tagName, options = {}) {
+		const parent = document.getElementById(parentId);
+		if (!parent) return null;
+
+		const element = document.createElement(tagName);
+
+		if (options.className) element.className = options.className;
+		if (options.id) element.id = options.id;
+		if (options.textContent) element.textContent = options.textContent;
+		if (options.innerHTML) element.innerHTML = options.innerHTML;
+
+		parent.appendChild(element);
+		return element;
+	}
+
+	/**
+	 * Remove all children from an element
+	 * @param {string} elementId - ID of the element to clear
+	 */
+	clearElement(elementId) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.innerHTML = '';
+		}
+	}
+
+	/**
+	 * Get element dimensions
+	 * @param {string} elementId - ID of the element
+	 * @returns {Object} Object with width and height properties
+	 */
+	getElementDimensions(elementId) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			const rect = element.getBoundingClientRect();
+			return {
+				width: rect.width,
+				height: rect.height,
+				x: rect.x,
+				y: rect.y
+			};
+		}
+		return { width: 0, height: 0, x: 0, y: 0 };
+	}
+
+	/**
+	 * Set element style property
+	 * @param {string} elementId - ID of the element
+	 * @param {string} property - CSS property name
+	 * @param {string} value - CSS property value
+	 */
+	setElementStyle(elementId, property, value) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.style[property] = value;
+		}
+	}
+
+	/**
+	 * Get element style property
+	 * @param {string} elementId - ID of the element
+	 * @param {string} property - CSS property name
+	 * @returns {string} CSS property value
+	 */
+	getElementStyle(elementId, property) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			return getComputedStyle(element)[property];
+		}
+		return '';
+	}
+
+	/**
+	 * Create a tooltip for an element
+	 * @param {string} elementId - ID of the element
+	 * @param {string} tooltipText - Tooltip text
+	 */
+	addTooltip(elementId, tooltipText) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.title = tooltipText;
+		}
+	}
+
+	/**
+	 * Remove tooltip from an element
+	 * @param {string} elementId - ID of the element
+	 */
+	removeTooltip(elementId) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.removeAttribute('title');
+		}
+	}
+
+	/**
+	 * Set element attribute
+	 * @param {string} elementId - ID of the element
+	 * @param {string} attribute - Attribute name
+	 * @param {string} value - Attribute value
+	 */
+	setElementAttribute(elementId, attribute, value) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.setAttribute(attribute, value);
+		}
+	}
+
+	/**
+	 * Get element attribute
+	 * @param {string} elementId - ID of the element
+	 * @param {string} attribute - Attribute name
+	 * @returns {string|null} Attribute value
+	 */
+	getElementAttribute(elementId, attribute) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			return element.getAttribute(attribute);
+		}
+		return null;
+	}
+
+	/**
+	 * Remove element attribute
+	 * @param {string} elementId - ID of the element
+	 * @param {string} attribute - Attribute name
+	 */
+	removeElementAttribute(elementId, attribute) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.removeAttribute(attribute);
+		}
+	}
+
+	/**
+	 * Update progress bar value
+	 * @param {string} elementId - ID of the progress element
+	 * @param {number} value - Progress value (0-100)
+	 * @param {string} text - Optional text to display
+	 */
+	updateProgressBar(elementId, value, text = '') {
+		const element = document.getElementById(elementId);
+		if (element) {
+			if (element.tagName === 'PROGRESS') {
+				element.value = value;
+			} else {
+				// Assume it's a div-based progress bar
+				const progressBar = element.querySelector('.progress-fill');
+				if (progressBar) {
+					progressBar.style.width = `${value}%`;
+				}
+			}
+
+			if (text) {
+				const textElement = element.querySelector('.progress-text');
+				if (textElement) {
+					textElement.textContent = text;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Show loading indicator
+	 * @param {string} elementId - ID of the container element
+	 * @param {string} message - Loading message
+	 */
+	showLoadingIndicator(elementId, message = 'Loading...') {
+		const element = document.getElementById(elementId);
+		if (element) {
+			element.innerHTML = `
+				<div class="loading-indicator">
+					<div class="loading-spinner"></div>
+					<div class="loading-message">${message}</div>
+				</div>
+			`;
+		}
+	}
+
+	/**
+	 * Hide loading indicator
+	 * @param {string} elementId - ID of the container element
+	 */
+	hideLoadingIndicator(elementId) {
+		const element = document.getElementById(elementId);
+		if (element) {
+			const loadingIndicator = element.querySelector('.loading-indicator');
+			if (loadingIndicator) {
+				loadingIndicator.remove();
+			}
+		}
+	}
+
+	/**
+	 * Create and show a modal dialog
+	 * @param {Object} options - Modal options
+	 * @returns {HTMLElement} Modal element
+	 */
+	showModal(options = {}) {
+		const modal = document.createElement('div');
+		modal.className = 'modal-overlay';
+		modal.innerHTML = `
+			<div class="modal-content">
+				<div class="modal-header">
+					<h3 class="modal-title">${options.title || 'Dialog'}</h3>
+					<button class="modal-close">&times;</button>
+				</div>
+				<div class="modal-body">
+					${options.content || ''}
+				</div>
+				<div class="modal-footer">
+					${options.footer || '<button class="button modal-ok">OK</button>'}
+				</div>
+			</div>
+		`;
+
+		// Add event listeners
+		const closeBtn = modal.querySelector('.modal-close');
+		const okBtn = modal.querySelector('.modal-ok');
+
+		const closeModal = () => {
+			document.body.removeChild(modal);
+			if (options.onClose) options.onClose();
+		};
+
+		if (closeBtn) closeBtn.addEventListener('click', closeModal);
+		if (okBtn) okBtn.addEventListener('click', closeModal);
+
+		// Close on overlay click
+		modal.addEventListener('click', (e) => {
+			if (e.target === modal) closeModal();
+		});
+
+		document.body.appendChild(modal);
+		return modal;
+	}
+
+	/**
+	 * Show confirmation dialog
+	 * @param {string} message - Confirmation message
+	 * @param {Function} onConfirm - Callback for confirm action
+	 * @param {Function} onCancel - Callback for cancel action
+	 */
+	showConfirmDialog(message, onConfirm, onCancel) {
+		const modal = this.showModal({
+			title: 'Confirmation',
+			content: `<p>${message}</p>`,
+			footer: `
+				<button class="button confirm-yes">Yes</button>
+				<button class="button confirm-no">No</button>
+			`,
+			onClose: onCancel
+		});
+
+		const yesBtn = modal.querySelector('.confirm-yes');
+		const noBtn = modal.querySelector('.confirm-no');
+
+		if (yesBtn) {
+			yesBtn.addEventListener('click', () => {
+				document.body.removeChild(modal);
+				if (onConfirm) onConfirm();
+			});
+		}
+
+		if (noBtn) {
+			noBtn.addEventListener('click', () => {
+				document.body.removeChild(modal);
+				if (onCancel) onCancel();
+			});
+		}
+	}
+
+	/**
+	 * Show notification toast
+	 * @param {string} message - Notification message
+	 * @param {string} type - Notification type ('info', 'success', 'warning', 'error')
+	 * @param {number} duration - Duration in milliseconds (0 for persistent)
+	 */
+	showNotification(message, type = 'info', duration = 3000) {
+		const notification = document.createElement('div');
+		notification.className = `notification notification-${type}`;
+		notification.innerHTML = `
+			<div class="notification-content">
+				<span class="notification-message">${message}</span>
+				<button class="notification-close">&times;</button>
+			</div>
+		`;
+
+		// Position the notification
+		notification.style.cssText = `
+			position: fixed;
+			top: 20px;
+			right: 20px;
+			z-index: 10000;
+			max-width: 300px;
+		`;
+
+		const closeBtn = notification.querySelector('.notification-close');
+		const removeNotification = () => {
+			if (notification.parentNode) {
+				notification.parentNode.removeChild(notification);
+			}
+		};
+
+		if (closeBtn) {
+			closeBtn.addEventListener('click', removeNotification);
+		}
+
+		document.body.appendChild(notification);
+
+		// Auto-remove after duration
+		if (duration > 0) {
+			setTimeout(removeNotification, duration);
+		}
+
+		return notification;
+	}
+
+	/**
+	 * Create a collapsible section
+	 * @param {string} containerId - ID of the container element
+	 * @param {string} title - Section title
+	 * @param {string} content - Section content
+	 * @param {boolean} expanded - Initial expanded state
+	 */
+	createCollapsibleSection(containerId, title, content, expanded = false) {
+		const container = document.getElementById(containerId);
+		if (!container) return;
+
+		const section = document.createElement('div');
+		section.className = 'collapsible-section';
+		section.innerHTML = `
+			<div class="collapsible-header">
+				<span class="collapsible-toggle">${expanded ? '▽' : '▷'}</span>
+				<span class="collapsible-title">${title}</span>
+			</div>
+			<div class="collapsible-content" style="display: ${expanded ? 'block' : 'none'}">
+				${content}
+			</div>
+		`;
+
+		const header = section.querySelector('.collapsible-header');
+		const toggle = section.querySelector('.collapsible-toggle');
+		const contentEl = section.querySelector('.collapsible-content');
+
+		header.addEventListener('click', () => {
+			const isExpanded = contentEl.style.display !== 'none';
+			contentEl.style.display = isExpanded ? 'none' : 'block';
+			toggle.textContent = isExpanded ? '▷' : '▽';
+		});
+
+		container.appendChild(section);
+		return section;
+	}
+
+	/**
+	 * Format bytes to human readable string
+	 * @param {number} bytes - Number of bytes
+	 * @returns {string} Formatted string
+	 */
+	formatBytes(bytes) {
+		if (bytes === 0) return '0 Bytes';
+		const k = 1024;
+		const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+		const i = Math.floor(Math.log(bytes) / Math.log(k));
+		return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+	}
+
+	/**
+	 * Format timestamp to readable string
+	 * @param {number|Date} timestamp - Timestamp to format
+	 * @returns {string} Formatted timestamp
+	 */
+	formatTimestamp(timestamp) {
+		const date = new Date(timestamp);
+		return date.toLocaleString();
+	}
+
+	/**
+	 * Debounce function calls
+	 * @param {Function} func - Function to debounce
+	 * @param {number} wait - Wait time in milliseconds
+	 * @returns {Function} Debounced function
+	 */
+	debounce(func, wait) {
+		let timeout;
+		return function executedFunction(...args) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
+
+	/**
+	 * Throttle function calls
+	 * @param {Function} func - Function to throttle
+	 * @param {number} limit - Time limit in milliseconds
+	 * @returns {Function} Throttled function
+	 */
+	throttle(func, limit) {
+		let inThrottle;
+		return function (...args) {
+			if (!inThrottle) {
+				func.apply(this, args);
+				inThrottle = true;
+				setTimeout(() => inThrottle = false, limit);
+			}
+		};
+	}
+
+	/**
 	 * Clean up any UI resources (timers, event listeners, etc.)
 	 */
 	dispose() {
@@ -405,5 +1068,14 @@ export class UIManager {
 			clearTimeout(this.hideStatusTimeout);
 			this.hideStatusTimeout = null;
 		}
+
+		// Remove any notifications
+		document.querySelectorAll('.notification').forEach(el => el.remove());
+
+		// Remove any modals
+		document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
+
+		// Clear element references
+		this.elements = {};
 	}
 }

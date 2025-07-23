@@ -23,7 +23,6 @@ body {
 .header {
 	grid-area: t;
 	text-align: center;
-	margin-bottom: 30px;
 	padding: 20px;
 	background: rgba(255, 255, 255, 0.05);
 	border-radius: 12px;
@@ -115,6 +114,13 @@ body {
 	box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
 }
 
+.status-container {
+	display: flex;
+	flex-direction: column;
+	gap: 15px;
+	margin-bottom: 5px;
+}
+
 /* SwiCC Connection styles */
 .swicc-connection {
 	background: rgba(255, 255, 255, 0.03);
@@ -142,7 +148,7 @@ body {
 	color: #ffffff;
 }
 
-.swicc-status {
+.connection-status {
 	padding: 4px 12px;
 	border-radius: 20px;
 	font-size: 0.85rem;
@@ -151,13 +157,13 @@ body {
 	letter-spacing: 0.5px;
 }
 
-.swicc-status.connected {
+.connection-status.connected {
 	background: rgba(34, 197, 94, 0.2);
 	color: #22c55e;
 	border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
-.swicc-status.disconnected {
+.connection-status.disconnected {
 	background: rgba(239, 68, 68, 0.2);
 	color: #ef4444;
 	border: 1px solid rgba(239, 68, 68, 0.3);
@@ -416,6 +422,13 @@ body {
 	padding-top: 20px;
 }
 
+.function-enables {
+	display: flex;
+	gap: 10px;
+	margin-bottom: 5px;
+	margin-top: 5px;
+}
+
 /* Button styles */
 .button {
 	background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -546,6 +559,13 @@ body {
 	background: currentColor;
 	opacity: 0.3;
 	z-index: -1;
+}
+
+.inline-with-gap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 5px;
+	align-items: center;
 }
 
 /* Manipulator wrapper */
