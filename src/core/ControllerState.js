@@ -45,12 +45,9 @@ class ControllerState {
 			rightY: 0,
 		};
 
-		// IMU samples: array of 3 samples of {accelX, accelY, accelZ, gyroX, gyroY, gyroZ}
-		this.imuSamples = [
-			{ accelX: 0, accelY: 0, accelZ: 0, gyroX: 0, gyroY: 0, gyroZ: 0 },
-			{ accelX: 0, accelY: 0, accelZ: 0, gyroX: 0, gyroY: 0, gyroZ: 0 },
-			{ accelX: 0, accelY: 0, accelZ: 0, gyroX: 0, gyroY: 0, gyroZ: 0 },
-		];
+		// IMU sample: sample of {accelX, accelY, accelZ, gyroX, gyroY, gyroZ}
+		// Acc units are m/s/s and gyro units are rad/s.
+		this.imuSample = { accelX: 0, accelY: 0, accelZ: 9.81, gyroX: 0, gyroY: 0, gyroZ: 0 };
 	}
 
 	/**
@@ -68,20 +65,15 @@ class ControllerState {
 	}
 
 	/**
-	 * Set IMU samples array. Must be an array of 3 objects with accelX, accelY, accelZ, gyroX, gyroY, gyroZ (16-bit ints).
+	 * Set IMU samples. accelX, accelY, accelZ, gyroX, gyroY, gyroZ.
 	 */
-	setIMUSamples(samples) {
-		if (!Array.isArray(samples) || samples.length !== 3) {
-			throw new Error('IMU data must be an array of 3 samples');
-		}
-		samples.forEach((s, i) => {
-			['accelX', 'accelY', 'accelZ', 'gyroX', 'gyroY', 'gyroZ'].forEach((key) => {
-				if (typeof s[key] !== 'number') {
-					throw new Error(`Sample ${i} missing numeric ${key}`);
-				}
-			});
+	setIMUSample(sample) {
+		['accelX', 'accelY', 'accelZ', 'gyroX', 'gyroY', 'gyroZ'].forEach((key) => {
+			if (typeof sample[key] !== 'number') {
+				throw new Error(`Sample missing numeric ${key}`);
+			}
 		});
-		this.imuSamples = samples.map(s => ({ ...s }));
+		this.imuSample = sample.map(s => ({ ...s }));
 	}
 
 	/**

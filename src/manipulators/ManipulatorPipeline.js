@@ -11,6 +11,8 @@ import { ButtonRemap } from './ButtonRemap.js';
 import { InputDelay } from './InputDelay.js';
 import { A2D } from './A2D.js';
 import { ChatCommand } from './ChatCommand.js';
+import { Shaker } from './Shaker.js';
+import { MouseMotion } from './MouseMotion.js';
 
 /**
  * @typedef {Object} BroadcastConfig
@@ -33,6 +35,8 @@ export class ManipulatorPipeline {
 		InputDelay,
 		A2D,
 		ChatCommand,
+		Shaker,
+		MouseMotion,
 		// Add more manipulator types here as needed
 	];
 
@@ -565,7 +569,7 @@ export class ManipulatorPipeline {
 		return {
 			digital: { ...state.digital },
 			analog: { ...state.analog },
-			imuSamples: state.imuSamples.map(s => ({ ...s })),
+			imuSample: { ...state.imuSample},
 			timestamp: Date.now()
 		};
 	}

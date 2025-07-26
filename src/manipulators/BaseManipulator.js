@@ -43,6 +43,19 @@ export class BaseManipulator {
 	}
 
 	/**
+	 * Return minimum SwiCC requirements to use this manipulator.
+	 * Subclasses can override this if they use features introduced 
+	 * in later hardware versions.
+	 * @returns {Object}
+	 */
+	static get requiredSwiCC() {
+		return {
+			type: "any", // SwiCC or 2wiCC
+			firmware: "0.0",
+		};
+	}
+
+	/**
 	 * @param {ManipulatorParams} params - Configuration parameters
 	 */
 	constructor(params = {}) {

@@ -13,6 +13,7 @@ class SerialComm {
 		/** @type {WritableStreamDefaultWriter<Uint8Array>|null} */
 		this.writer = null;
 		/** @type {ReadableStreamDefaultReader<Uint8Array>|null} */
+		/** @private */ this._lastIMUSample = null;
 		this.reader = null;
 		this.textEncoder = new TextEncoder('ascii');
 		this.textDecoder = new TextDecoder('ascii');
@@ -105,19 +106,29 @@ class SerialComm {
 	 * Send a ControllerState packet with 2wiCC protocol formatting.
 	 * @param {ControllerState} state
 	 * @param {boolean} includeAnalog
+	 * @param {boolean} includeIMU
 	 */
-	async sendBasic(state, includeAnalog = true) {
+	async sendBasic(state, includeAnalog = true, includeIMU = false) {
 		if (!this.writer) {
 			throw new Error('SerialComm: writer not ready (call setPort first)');
 		}
-		// Send the appropriate header
-		const preamble = includeAnalog
-			? this.textEncoder.encode("+QF ") // queue full
-			: this.textEncoder.encode("+QD "); // queue digital
+
+		// Determine command based on what data is included
+		let preamble;
+		if (includeIMU && includeAnalog) {
+			preamble = this.textEncoder.encode("+QFI "); // queue full with IMU
+		} else if (includeAnalog) {
+			preamble = this.textEncoder.encode("+QF "); // queue full
+		} else {
+			preamble = this.textEncoder.encode("+QD "); // queue digital
+		}
+
 		this.writer.write(preamble);
-		// Send the data - use the SwiCC-specific formatting
-		const packet = this._encodeControllerStateTo2wiCC(state, includeAnalog);
+
+		// Send the data - use the 2wiCC-specific formatting
+		const packet = this._encodeControllerStateTo2wiCC(state, includeAnalog, includeIMU);
 		this.writer.write(packet);
+
 		// Send the closure
 		await this.writer.write(this.textEncoder.encode("\n"));
 	}
@@ -141,35 +152,23 @@ class SerialComm {
 	}
 
 	/**
-	 * Pack IMU samples: three samples of 16-bit LE accelX, accelY, accelZ, gyroX, gyroY, gyroZ.
-	 * This exact format is required for SwiCC.
-	 */
-	getPackedIMU() {
-		const buf = new DataView(new ArrayBuffer(36));
-		this.imuSamples.forEach((s, idx) => {
-			const base = idx * 12;
-			buf.setInt16(base, s.accelX, true);
-			buf.setInt16(base + 2, s.accelY, true);
-			buf.setInt16(base + 4, s.accelZ, true);
-			buf.setInt16(base + 6, s.gyroX, true);
-			buf.setInt16(base + 8, s.gyroY, true);
-			buf.setInt16(base + 10, s.gyroZ, true);
-		});
-		return new Uint8Array(buf.buffer);
-	}
-
-	/**
-	 * Encode a ControllerState to SwiCC protocol format.
-	 * Pack all of the controller data (digital + optional analog)
+	 * Encode a ControllerState to 2wiCC protocol format.
+	 * Pack all of the controller data (digital + optional analog + optional IMU)
 	 * and return a Uint8Array of ASCII codes for the hex representation.
 	 * Each input byte becomes two ASCII bytes: [0–9,A–F].
 	 * @param {ControllerState} state
 	 * @param {boolean} includeAnalog
+	 * @param {boolean} includeIMU
 	 * @returns {Uint8Array}
 	 * @private
 	 */
-	_encodeControllerStateTo2wiCC(state, includeAnalog = true) {
-		const hexLen = (includeAnalog ? 9 : 3) * 2;
+	_encodeControllerStateTo2wiCC(state, includeAnalog = true, includeIMU = false) {
+		// Calculate hex length: 3 bytes digital + 6 bytes analog (if included) + 12 bytes IMU (if included)
+		let dataBytes = 3; // Always include digital
+		if (includeAnalog) dataBytes += 6;
+		if (includeIMU) dataBytes += 12;
+
+		const hexLen = dataBytes * 2;
 		const out = new Uint8Array(hexLen);
 		let ptr = 0;
 
@@ -242,6 +241,36 @@ class SerialComm {
 				(ry.h << 4) | ry.m
 			];
 			for (const b of analogBytes) writeHexByte(b);
+		}
+
+		if (includeIMU && state.imuSample) {
+			/* Pack IMU data: 16-bit LE accelX, accelY, accelZ, gyroX, gyroY, gyroZ
+			* X is pointing away from player, Y is out left side, Z is up.
+			* Acc origin position X: 0000, Y: 0000, Z: 1000
+			* 1G = 10m / s / s = acc sample 0x1000, so the scale factor is 400.
+			* Gyro scale factor to rad / s is 700.
+			* This exact format is required for 2wiCC.
+			*/
+			const imu = state.imuSample;
+
+			// Helper to write 16-bit little-endian value as 2 bytes
+			const writeInt16LE = (value) => {
+				const scaled = Math.round(value);
+				const clamped = Math.max(-32768, Math.min(32767, scaled));
+				const unsigned = clamped < 0 ? clamped + 65536 : clamped;
+
+				// Little-endian: low byte first, then high byte
+				writeHexByte(unsigned & 0xFF);
+				writeHexByte((unsigned >> 8) & 0xFF);
+			};
+
+			// Write the 6 IMU values as 16-bit LE integers
+			writeInt16LE(imu.accelX * 400);
+			writeInt16LE(imu.accelY * 400);
+			writeInt16LE(imu.accelZ * 400);
+			writeInt16LE(imu.gyroX * 700);
+			writeInt16LE(imu.gyroY * 700);
+			writeInt16LE(imu.gyroZ * 700);
 		}
 
 		return out;  // Uint8Array of ASCII
@@ -488,18 +517,18 @@ export class SwiCCSink {
 		if (!this._port) {
 			throw new Error('[SwiCCSink] No port selected; call requestPort() first.');
 		}
-		
+
 		let portOpened = false;
 		let commSetup = false;
 		let readingStarted = false;
-		
+
 		try {
 			await this._port.open(this.serialOptions);
 			portOpened = true;
-			
+
 			this.comm.setPort(this._port);
 			commSetup = true;
-			
+
 			this._isConnected = true;
 
 			// Start reading automatically when port opens
@@ -520,33 +549,33 @@ export class SwiCCSink {
 			}
 		} catch (err) {
 			console.error('[SwiCCSink] Failed to open port:', err);
-			
+
 			// Clean up in reverse order of what was set up
 			this._isConnected = false;
-			
+
 			if (readingStarted || commSetup) {
 				try {
 					await this.comm.disconnect();
-				} catch (_) { 
+				} catch (_) {
 					// Ignore cleanup errors
 				}
 			}
-			
+
 			if (portOpened && this._port) {
 				try {
 					await this._port.close();
-				} catch (_) { 
+				} catch (_) {
 					// Ignore cleanup errors
 				}
 			}
-			
+
 			// Reset state
 			this._port = null;
 			this._deviceId = null;
 			this._deviceVersion = null;
 			this._isInterrogated = false;
 			this._cleanupInterrogation();
-			
+
 			throw err;
 		}
 	}
@@ -575,11 +604,37 @@ export class SwiCCSink {
 			// already offline; no-op
 			return;
 		}
+
 		try {
-			if (this._deviceId === "2wiCC")
-				await this.comm.sendBasic(state, true);
-			if (this._deviceId === "SwiCC")
-				await this.comm.sendBasicSwiCC(state, true);
+			if (this._deviceId === "2wiCC") {
+				// Check if IMU data has changed
+				let includeIMU = false;
+				if (state.imuSample) {
+					if (!this._lastIMUSample) {
+						// First time sending IMU data
+						includeIMU = true;
+						this._lastIMUSample = { ...state.imuSample };
+					} else {
+						// Check if any IMU value has changed
+						const imu = state.imuSample;
+						const last = this._lastIMUSample;
+						if (imu.accelX !== last.accelX ||
+							imu.accelY !== last.accelY ||
+							imu.accelZ !== last.accelZ ||
+							imu.gyroX !== last.gyroX ||
+							imu.gyroY !== last.gyroY ||
+							imu.gyroZ !== last.gyroZ) {
+							includeIMU = true;
+							// Update stored IMU data
+							this._lastIMUSample = { ...state.imuSample };
+						}
+					}
+				}
+
+				await this.comm.sendBasic(state, true, includeIMU);
+			} else if (this._deviceId === "SwiCC") {
+				await this.comm.sendBasicSwiCC(state);
+			}
 		} catch (err) {
 			console.warn('[SwiCCSink] send failed—assuming port lost:', err);
 			// clean up writer + port
@@ -659,6 +714,7 @@ export class SwiCCSink {
 		this._deviceId = null;
 		this._deviceVersion = null;
 		this._isInterrogated = false;
+		this._lastIMUSample = null;
 
 		// Remove event listener
 		navigator.serial.removeEventListener('disconnect', this._handlePortDisconnect);
