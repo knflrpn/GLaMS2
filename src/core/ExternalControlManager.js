@@ -151,10 +151,6 @@ export class ExternalControlManager {
 		this.registerMessageHandler('savePipelineConfig', (data) => {
 			return this.handleSavePipelineConfig(data);
 		});
-
-		this.registerMessageHandler('bulkExecute', (data) => {
-			return this.handleBulkExecute(data);
-		});
 	}
 
 	/**
@@ -393,10 +389,10 @@ export class ExternalControlManager {
 			const result = this.processMessage(data);
 
 			// Send response back through broadcast channel if needed
-			if (result && data.responseId) {
+			if (result) {
 				this.broadcastChannel.postMessage({
 					type: 'response',
-					responseId: data.responseId,
+					responseId: data.requestId || "",
 					result: result
 				});
 			}
@@ -433,6 +429,7 @@ export class ExternalControlManager {
 			if (result && this.websocket && this.websocket.readyState === WebSocket.OPEN) {
 				this.websocket.send(JSON.stringify({
 					type: 'response',
+					responseId: data.requestId || "",
 					result: result
 				}));
 			}
@@ -536,7 +533,6 @@ export class ExternalControlManager {
 				this.pipelineManager.getAvailableTypes() : [],
 			system: {
 				timestamp: Date.now(),
-				version: '1.0.0'
 			}
 		};
 	}
@@ -872,67 +868,6 @@ export class ExternalControlManager {
 			this.uiManager.logMessage(`Failed to move manipulator: ${error.message}`);
 			throw error;
 		}
-	}
-
-	/**
-	 * Handle bulk execute message (execute multiple actions)
-	 * @param {Object} data - Bulk operation data
-	 * @returns {Object} Result
-	 */
-	handleBulkExecute(data) {
-		const { operations } = data;
-
-		if (!Array.isArray(operations)) {
-			throw new Error('Operations must be an array');
-		}
-
-		const results = [];
-		let successCount = 0;
-		let errorCount = 0;
-
-		for (let i = 0; i < operations.length; i++) {
-			const operation = operations[i];
-
-			try {
-				let result;
-
-				if (operation.type === 'executeAction') {
-					result = this.handleExecuteAction(operation);
-				} else if (operation.type === 'addManipulator') {
-					result = this.handleAddManipulator(operation);
-				} else if (operation.type === 'removeManipulator') {
-					result = this.handleRemoveManipulator(operation);
-				} else if (operation.type === 'configureManipulator') {
-					result = this.handleConfigureManipulator(operation);
-				} else if (operation.type === 'moveManipulator') {
-					result = this.handleMoveManipulator(operation);
-				} else {
-					throw new Error(`Unknown bulk operation type: ${operation.type}`);
-				}
-
-				results.push({ index: i, success: true, result: result });
-				successCount++;
-
-			} catch (error) {
-				results.push({
-					index: i,
-					success: false,
-					error: error.message,
-					operation: operation
-				});
-				errorCount++;
-			}
-		}
-
-		this.uiManager.logMessage(`Bulk operation: ${successCount} succeeded, ${errorCount} failed`);
-
-		return {
-			success: errorCount === 0,
-			totalOperations: operations.length,
-			successCount: successCount,
-			errorCount: errorCount,
-			results: results
-		};
 	}
 
 	/**

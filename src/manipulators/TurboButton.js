@@ -22,6 +22,10 @@ export class TurboButton extends BaseManipulator {
 		return "Turbo";
 	}
 
+	static get description() {
+		return "Create a turbo effect on selected buttons.";
+	}
+
 	/**
 	 * @param {TurboButtonParams} params - Configuration parameters
 	 */

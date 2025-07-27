@@ -259,7 +259,7 @@ class CommandEditor {
                     </label>
                     <div class="keywords-container" id="keywordsContainer"></div>
                     <div style="display: flex; gap: 10px;">
-                        <input type="text" id="keywordInput" placeholder="Add keyword..." 
+                        <input type="text" id="keywordInput" placeholder="New keyword..." 
                                onkeypress="if(event.key==='Enter') { commandEditor.addKeyword(this.value); this.value=''; }">
                         <button class="button small" onclick="commandEditor.addKeyword(document.getElementById('keywordInput').value); document.getElementById('keywordInput').value='';">
                             Add to list
@@ -299,7 +299,7 @@ class CommandEditor {
                     <div class="form-field">
                         <label>Probability</label>
                         <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="range" value="${this.currentCommand.probability}" min="0" max="1" step="0.1"
+                            <input type="range" value="${this.currentCommand.probability}" min="0" max="1" step="0.02"
                                    oninput="commandEditor.updateCommandField('probability', parseFloat(this.value)); document.getElementById('probValue').textContent = (this.value * 100).toFixed(0) + '%';">
                             <span id="probValue" class="slider-value">${(this.currentCommand.probability * 100).toFixed(0)}%</span>
                         </div>
@@ -320,7 +320,7 @@ class CommandEditor {
             <div class="form-section">
                 <h3>Actions</h3>
                 <div id="actionsContainer"></div>
-                <button class="button" onclick="commandEditor.addAction()">+ Add Action</button>
+                <button class="button" onclick="commandEditor.addAction()">+ Another Action</button>
             </div>
 
             <div class="action-buttons">

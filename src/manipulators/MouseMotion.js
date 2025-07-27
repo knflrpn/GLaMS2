@@ -44,6 +44,10 @@ export class MouseMotion extends BaseManipulator {
 		};
 	}
 
+	static get description() {
+		return "Convert mouse motion to controller motion.";
+	}
+
 	/**
 	 * @param {MouseMotionParams} params - Configuration parameters
 	 */

@@ -36,6 +36,10 @@ export class Shaker extends BaseManipulator {
 		};
 	}
 
+	static get description() {
+		return "Cause shaking on output motion triggered by button press.";
+	}
+
 	/**
 	 * @param {ShakerParams} params - Configuration parameters
 	 */

@@ -29,12 +29,16 @@ export class A2D extends BaseManipulator {
 		return "Sticks to Buttons";
 	}
 
+	static get description() {
+		return "Convert analog stick movement to that direction's digital button.";
+	}
+
 	/**
 	 * @param {A2DParams} params - Configuration parameters
 	 */
 	constructor(params = {}) {
 		super(params);
-		
+
 		this.enableLeft = params.enableLeft ?? true;
 		this.enableRight = params.enableRight ?? true;
 		this.passLeftAnalog = params.passLeftAnalog ?? true;
@@ -224,13 +228,13 @@ export class A2D extends BaseManipulator {
 		if (this.enableLeft) {
 			const lx = state.analog.leftX;
 			const ly = state.analog.leftY;
-			
+
 			// Convert to D-Pad based on threshold
 			state.digital.dpadLeft = lx < -this.threshold;
 			state.digital.dpadRight = lx > this.threshold;
 			state.digital.dpadUp = ly > this.threshold;
 			state.digital.dpadDown = ly < -this.threshold;
-			
+
 			// Optionally neutralize analog
 			if (!this.passLeftAnalog) {
 				state.analog.leftX = 0;
@@ -242,14 +246,14 @@ export class A2D extends BaseManipulator {
 		if (this.enableRight) {
 			const rx = state.analog.rightX;
 			const ry = state.analog.rightY;
-			
+
 			// Convert to ABXY based on threshold
 			// Using Nintendo/Xbox layout: A=bottom, B=right, X=left, Y=top
 			state.digital.buttonX = ry < -this.threshold;  // Up
 			state.digital.buttonA = rx > this.threshold;   // Right
 			state.digital.buttonY = rx < -this.threshold;  // Left
 			state.digital.buttonB = ry > this.threshold;   // Down
-			
+
 			// Optionally neutralize analog
 			if (!this.passRightAnalog) {
 				state.analog.rightX = 0;
@@ -270,7 +274,7 @@ export class A2D extends BaseManipulator {
 
 		// Left stick controls
 		const leftDiv = document.createElement('div');
-		
+
 		const leftTitle = document.createElement('h4');
 		leftTitle.textContent = 'Left Stick → D-Pad';
 		leftDiv.appendChild(leftTitle);
@@ -284,7 +288,7 @@ export class A2D extends BaseManipulator {
 		});
 		leftEnable.appendChild(this._leftCheckbox);
 		leftEnable.appendChild(document.createTextNode(' Enable conversion'));
-		
+
 		const leftPass = document.createElement('label');
 		this._passLeftCheckbox = document.createElement('input');
 		this._passLeftCheckbox.type = 'checkbox';
@@ -300,7 +304,7 @@ export class A2D extends BaseManipulator {
 
 		// Right stick controls
 		const rightDiv = document.createElement('div');
-		
+
 		const rightTitle = document.createElement('h4');
 		rightTitle.textContent = 'Right Stick → ABXY';
 		rightDiv.appendChild(rightTitle);
@@ -314,7 +318,7 @@ export class A2D extends BaseManipulator {
 		});
 		rightEnable.appendChild(this._rightCheckbox);
 		rightEnable.appendChild(document.createTextNode(' Enable conversion'));
-		
+
 		const rightPass = document.createElement('label');
 		this._passRightCheckbox = document.createElement('input');
 		this._passRightCheckbox.type = 'checkbox';
@@ -361,7 +365,7 @@ export class A2D extends BaseManipulator {
 		thresholdDiv.appendChild(thresholdLabel);
 		thresholdDiv.appendChild(this._thresholdSlider);
 		thresholdDiv.appendChild(this._thresholdDisplay);
-		
+
 		// Quick actions
 		const actionsDiv = document.createElement('div');
 		actionsDiv.className = 'quick-actions';

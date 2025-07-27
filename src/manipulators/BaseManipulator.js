@@ -43,6 +43,15 @@ export class BaseManipulator {
 	}
 
 	/**
+	 * Return a brief description for this class.
+	 * Subclasses should override this
+	 * @returns {String}
+	 */
+	static get description() {
+		return "No description available.";
+	}
+
+	/**
 	 * Return minimum SwiCC requirements to use this manipulator.
 	 * Subclasses can override this if they use features introduced 
 	 * in later hardware versions.

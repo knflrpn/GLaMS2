@@ -25,6 +25,10 @@ export class ButtonRemap extends BaseManipulator {
 		return "Button Remap";
 	}
 
+	static get description() {
+		return "Remap any buttons to any other buttons.";
+	}
+
 	/**
 	 * @param {RemapParams} params - Configuration parameters
 	 */

@@ -1,8 +1,7 @@
 /**
  * ./src/manipulators/ChatCommand.js
  *
- * Manipulator that connects to Twitch chat and displays messages.
- * Future versions will manipulate controller states based on chat commands.
+ * Manipulator that accepts chat messages to convert to controller state.
  */
 import { BaseManipulator } from './BaseManipulator.js';
 
@@ -69,6 +68,9 @@ export class ChatCommand extends BaseManipulator {
 		return "Chat Command";
 	}
 
+	static get description() {
+		return "Accept text commands to control controller state.";
+	}
 
 	/**
 	 * @param {chatParams} params - Configuration parameters
@@ -856,11 +858,11 @@ export class ChatCommand extends BaseManipulator {
 		connectionDiv.className = 'manipulator-control-group inline-with-gap';
 
 		const channelLabel = document.createElement('label');
-		channelLabel.textContent = 'Channel: ';
+		channelLabel.textContent = 'Twitch Channel: ';
 
 		this._channelInput = document.createElement('input');
 		this._channelInput.type = 'text';
-		this._channelInput.placeholder = 'channel';
+		this._channelInput.placeholder = 'leave blank for bot';
 		this._channelInput.value = this.channel;
 		this._channelInput.className = 'chatcommand-channel-input';
 

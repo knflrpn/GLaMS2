@@ -20,6 +20,10 @@ export class InputDelay extends BaseManipulator {
 		return "Input Delay";
 	}
 
+	static get description() {
+		return "Introduce a delay from input controller state to output controller state.";
+	}
+
 	/**
 	 * @param {DelayParams} params - Configuration parameters
 	 */
