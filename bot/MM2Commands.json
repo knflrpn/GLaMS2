@@ -1,0 +1,415 @@
+{
+  "timestamp": "2025-07-28T16:10:01.264Z",
+  "commands": [
+    {
+      "keywords": [
+        "left"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 50,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadLeft": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "right"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 50,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadRight": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "jump",
+        "swim"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 50,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonA": true
+          },
+          "analog": {},
+          "duration": 100
+        },
+        {
+          "digital": {
+            "buttonB": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "run",
+        "grab",
+        "hold"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 100,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonY": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "fire",
+        "throw"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 100,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonY": true
+          },
+          "analog": {},
+          "duration": 50
+        },
+        {
+          "digital": {},
+          "analog": {},
+          "duration": 50
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "spin",
+        "twirl"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 100,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonZR": true
+          },
+          "analog": {},
+          "duration": 50
+        },
+        {
+          "digital": {},
+          "analog": {},
+          "duration": 50
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "up",
+        "climb"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 50,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadUp": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "down",
+        "duck"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 50,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadDown": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "tapleft",
+        "smallleft",
+        "inchleft"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 250,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadLeft": true
+          },
+          "analog": {},
+          "duration": 100
+        },
+        {
+          "digital": {},
+          "analog": {},
+          "duration": 1000
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "tapright",
+        "smallright",
+        "inchright"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 250,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadLeft": true
+          },
+          "analog": {},
+          "duration": 100
+        },
+        {
+          "digital": {},
+          "analog": {},
+          "duration": 1000
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "hop",
+        "smalljump"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 250,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonA": true
+          },
+          "analog": {},
+          "duration": 100
+        },
+        {
+          "digital": {},
+          "analog": {},
+          "duration": 500
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "screenshot",
+        "ttours",
+        "capture"
+      ],
+      "cooldown": 2000,
+      "userCooldown": 10000,
+      "minDuration": 50,
+      "maxDuration": 400,
+      "probability": 0.02,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonCapture": true
+          },
+          "analog": {},
+          "duration": 100
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "roll"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 50,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "dpadDown": true
+          },
+          "analog": {},
+          "duration": 50
+        },
+        {
+          "digital": {
+            "dpadDown": true,
+            "buttonR": true
+          },
+          "analog": {},
+          "duration": 100
+        },
+        {
+          "digital": {},
+          "analog": {},
+          "duration": 500
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "skispin"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 200,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {
+            "buttonA": true
+          },
+          "analog": {
+            "stickLX": 1,
+            "stickLY": 1,
+            "stickRX": 0.4,
+            "stickRY": -0.35
+          },
+          "duration": 50
+        },
+        {
+          "digital": {
+            "buttonB": true
+          },
+          "analog": {},
+          "duration": 50
+        },
+        {
+          "digital": {
+            "buttonY": true
+          },
+          "analog": {},
+          "duration": 50
+        },
+        {
+          "digital": {
+            "buttonX": true
+          },
+          "analog": {},
+          "duration": 50
+        }
+      ]
+    },
+    {
+      "keywords": [
+        "shmoov",
+        "shmoove",
+        "shmove",
+        "schmove",
+        "schmoov"
+      ],
+      "cooldown": 0,
+      "userCooldown": 0,
+      "minDuration": 200,
+      "maxDuration": 2000,
+      "probability": 1,
+      "exclusive": false,
+      "actions": [
+        {
+          "digital": {},
+          "analog": {
+            "stickLX": 1
+          },
+          "duration": 50
+        },
+        {
+          "digital": {},
+          "analog": {
+            "stickLX": -1
+          },
+          "duration": 50
+        },
+        {
+          "digital": {},
+          "analog": {
+            "stickLY": 1
+          },
+          "duration": 50
+        },
+        {
+          "digital": {},
+          "analog": {
+            "stickLY": -1
+          },
+          "duration": 50
+        }
+      ]
+    }
+  ]
+}

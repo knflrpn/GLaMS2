@@ -862,7 +862,7 @@ export class ChatCommand extends BaseManipulator {
 
 		this._channelInput = document.createElement('input');
 		this._channelInput.type = 'text';
-		this._channelInput.placeholder = 'leave blank for bot';
+		this._channelInput.placeholder = 'for Twitch chat';
 		this._channelInput.value = this.channel;
 		this._channelInput.className = 'chatcommand-channel-input';
 

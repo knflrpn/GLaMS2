@@ -92,6 +92,8 @@ class CommandEditor {
 
 		this.currentCommandIndex = -1;
 		this.isDirty = false;
+		// Add an initial action.
+		this.addAction();
 		this.renderEditor();
 	}
 
@@ -110,6 +112,10 @@ class CommandEditor {
 	}
 
 	saveCommand() {
+		// If user has entered a keyword but forgot to submit it, submit it for them.
+		const tempkeyword = document.getElementById('keywordInput').value;
+		if (tempkeyword) this.addKeyword(tempkeyword);
+
 		if (!this.validateCommand()) {
 			return;
 		}
@@ -124,9 +130,13 @@ class CommandEditor {
 		}
 
 		this.isDirty = false;
+		this.currentCommand = null;
+		this.currentCommandIndex = -1;
 		this.updateCommandList();
 		this.showStatus('Command saved successfully', 'success');
 		this.autoSave();
+		this.renderEditor();
+
 	}
 
 	deleteCommand() {
@@ -146,6 +156,22 @@ class CommandEditor {
 		this.updateCommandList();
 		this.renderEditor();
 		this.showStatus('Command deleted', 'success');
+		this.autoSave();
+	}
+
+	clearCommands() {
+		if (!confirm('Are you sure you want to delete ALL commands?')) {
+			return;
+		}
+
+		this.commands = [];
+		this.currentCommand = null;
+		this.currentCommandIndex = -1;
+		this.isDirty = false;
+
+		this.updateCommandList();
+		this.renderEditor();
+		this.showStatus('Commands cleared', 'success');
 		this.autoSave();
 	}
 
@@ -205,6 +231,21 @@ class CommandEditor {
 		this.renderActions();
 	}
 
+	initializeStickControlsForAction(actionIndex) {
+		// Update visual positions for just this action's sticks
+		const action = this.currentCommand.actions[actionIndex];
+
+		// Update left stick
+		const leftX = action.analog.stickLX || 0;
+		const leftY = action.analog.stickLY || 0;
+		this.updateStickVisualPosition(actionIndex, 'left', leftX, leftY);
+
+		// Update right stick
+		const rightX = action.analog.stickRX || 0;
+		const rightY = action.analog.stickRY || 0;
+		this.updateStickVisualPosition(actionIndex, 'right', rightX, rightY);
+	}
+
 	updateAction(index, field, value) {
 		if (index >= 0 && index < this.currentCommand.actions.length) {
 			if (field === 'duration') {
@@ -230,8 +271,30 @@ class CommandEditor {
 			this.currentCommand.actions[index] = this.currentCommand.actions[newIndex];
 			this.currentCommand.actions[newIndex] = temp;
 			this.isDirty = true;
-			this.renderActions();
+			this.updateActionNumbers();
+			this.updateMoveButtonStates();
 		}
+	}
+
+	updateActionNumbers() {
+		const actionItems = document.querySelectorAll('.action-item');
+		actionItems.forEach((item, index) => {
+			const numberSpan = item.querySelector('.action-number');
+			if (numberSpan) {
+				numberSpan.textContent = `Action ${index + 1}`;
+			}
+		});
+	}
+
+	updateMoveButtonStates() {
+		const actionItems = document.querySelectorAll('.action-item');
+		actionItems.forEach((item, index) => {
+			const upButton = item.querySelector('button[onclick*="moveAction"]');
+			const downButton = item.querySelectorAll('button[onclick*="moveAction"]')[1];
+
+			if (upButton) upButton.disabled = index === 0;
+			if (downButton) downButton.disabled = index === this.currentCommand.actions.length - 1;
+		});
 	}
 
 	// UI Rendering
@@ -328,7 +391,7 @@ class CommandEditor {
                     ${this.currentCommandIndex === -1 ? 'Create Command' : 'Update Command'}
                 </button>
                 ${this.currentCommandIndex !== -1 ? '<button class="button danger" onclick="commandEditor.deleteCommand()">Delete Command</button>' : ''}
-                <button class="button secondary" onclick="commandEditor.currentCommand = null; commandEditor.currentCommandIndex = -1; commandEditor.renderEditor();">
+                <button class="button secondary" onclick="commandEditor.currentCommand = null; commandEditor.currentCommandIndex = -1; commandEditor.isDirty = false; commandEditor.renderEditor();">
                     Cancel
                 </button>
             </div>
@@ -336,6 +399,7 @@ class CommandEditor {
 
 		this.renderKeywords();
 		this.renderActions();
+		setTimeout(() => { this.initializeStickControls(); }, 0);
 	}
 
 	renderKeywords() {
@@ -360,74 +424,77 @@ class CommandEditor {
 		}
 
 		container.innerHTML = this.currentCommand.actions.map((action, index) => this.renderAction(action, index)).join('');
+
+		// Initialize stick controls after DOM is updated
+		setTimeout(() => {
+			this.initializeStickControls();
+		}, 0);
+
 	}
 
 	renderAction(action, index) {
 		return `
-            <div class="action-item">
-                <div class="action-header">
-                    <span class="action-number">Action ${index + 1}</span>
-                    <div style="display: flex; gap: 10px;">
-                        <button class="button small" onclick="commandEditor.moveAction(${index}, -1)" 
-                                ${index === 0 ? 'disabled' : ''}>↑</button>
-                        <button class="button small" onclick="commandEditor.moveAction(${index}, 1)"
-                                ${index === this.currentCommand.actions.length - 1 ? 'disabled' : ''}>↓</button>
-                        <button class="button small danger" onclick="commandEditor.removeAction(${index})">Remove</button>
-                    </div>
-                </div>
-
-                <div class="form-field">
-                    <label>Duration (ms)</label>
-                    <input type="number" value="${action.duration}" min="50" max="2000" step="50"
-                           onchange="commandEditor.updateAction(${index}, 'duration', parseInt(this.value))">
-                </div>
-
-                <h5 style="margin-top: 15px; margin-bottom: 10px;">Digital Buttons</h5>
-                <div class="button-grid">
-                    ${this.availableButtons.map(button => `
-                        <div class="button-toggle ${action.digital[button] ? 'active' : ''}"
-                             onclick="commandEditor.toggleButton(${index}, '${button}')">
-                            ${this.buttonDisplayNames[button]}
-                        </div>
-                    `).join('')}
-                </div>
-
-                <h5 style="margin-top: 15px; margin-bottom: 10px;">Analog Sticks</h5>
-                <div class="analog-controls">
-                    <div class="stick-control">
-                        <h5>Left Stick</h5>
-                        <div class="stick-inputs">
-                            <div>
-                                <label>X: <span id="leftX-${index}" style="color: #a5b4fc;">${action.analog.stickLX || 0}</span></label>
-                                <input type="range" value="${action.analog.stickLX || 0}" min="-1" max="1" step="0.1"
-                                       oninput="commandEditor.updateAnalog(${index}, 'stickLX', parseFloat(this.value)); document.getElementById('leftX-${index}').textContent = this.value;">
-                            </div>
-                            <div>
-                                <label>Y: <span id="leftY-${index}" style="color: #a5b4fc;">${action.analog.stickLY || 0}</span></label>
-                                <input type="range" value="${action.analog.stickLY || 0}" min="-1" max="1" step="0.1"
-                                       oninput="commandEditor.updateAnalog(${index}, 'stickLY', parseFloat(this.value)); document.getElementById('leftY-${index}').textContent = this.value;">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="stick-control">
-                        <h5>Right Stick</h5>
-                        <div class="stick-inputs">
-                            <div>
-                                <label>X: <span id="rightX-${index}" style="color: #a5b4fc;">${action.analog.stickRX || 0}</span></label>
-                                <input type="range" value="${action.analog.stickRX || 0}" min="-1" max="1" step="0.1"
-                                       oninput="commandEditor.updateAnalog(${index}, 'stickRX', parseFloat(this.value)); document.getElementById('rightX-${index}').textContent = this.value;">
-                            </div>
-                            <div>
-                                <label>Y: <span id="rightY-${index}" style="color: #a5b4fc;">${action.analog.stickRY || 0}</span></label>
-                                <input type="range" value="${action.analog.stickRY || 0}" min="-1" max="1" step="0.1"
-                                       oninput="commandEditor.updateAnalog(${index}, 'stickRY', parseFloat(this.value)); document.getElementById('rightY-${index}').textContent = this.value;">
-                            </div>
-                        </div>
-                    </div>
+        <div class="action-item">
+            <div class="action-header">
+                <span class="action-number">Action ${index + 1}</span>
+                <div style="display: flex; gap: 10px;">
+                    <button class="button small" onclick="commandEditor.moveAction(${index}, -1)" 
+                            ${index === 0 ? 'disabled' : ''}>↑</button>
+                    <button class="button small" onclick="commandEditor.moveAction(${index}, 1)"
+                            ${index === this.currentCommand.actions.length - 1 ? 'disabled' : ''}>↓</button>
+                    <button class="button small danger" onclick="commandEditor.removeAction(${index})">Remove</button>
                 </div>
             </div>
-        `;
+
+            <div class="form-field">
+                <label>Duration (ms)</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <input type="range" value="${action.duration}" min="50" max="2000" step="50"
+                           oninput="commandEditor.updateAction(${index}, 'duration', parseInt(this.value)); document.getElementById('durationValue${index}').textContent = this.value + 'ms';">
+                    <span id="durationValue${index}" class="slider-value">${action.duration}ms</span>
+                </div>
+            </div>
+
+            <h5 style="margin-top: 15px; margin-bottom: 10px;">Digital Buttons</h5>
+            <div class="button-grid">
+                ${this.availableButtons.map(button => `
+                    <div class="button-toggle ${action.digital[button] ? 'active' : ''}"
+                         onclick="commandEditor.toggleButton(${index}, '${button}')">
+                        ${this.buttonDisplayNames[button]}
+                    </div>
+                `).join('')}
+            </div>
+
+            <h5 style="margin-top: 15px; margin-bottom: 10px;">Analog Sticks</h5>
+            <div class="analog-controls">
+                <div class="stick-control">
+                    <h5>Left Stick</h5>
+                    <div class="stick-area" data-stick="left" data-action="${index}">
+                        <div class="center-cross"></div>
+                        <div class="stick-thumb" data-stick="left" data-action="${index}"></div>
+                    </div>
+                    <div class="stick-values">
+                        <div>X: <span class="x-value">${(action.analog.stickLX || 0).toFixed(1)}</span></div>
+                        <div>Y: <span class="y-value">${(action.analog.stickLY || 0).toFixed(1)}</span></div>
+                    </div>
+                    <button class="reset-stick-btn" onclick="commandEditor.resetStick(${index}, 'left')">Reset</button>
+                </div>
+                
+                <div class="stick-control">
+                    <h5>Right Stick</h5>
+                    <div class="stick-area" data-stick="right" data-action="${index}">
+                        <div class="center-cross"></div>
+                        <div class="stick-thumb" data-stick="right" data-action="${index}"></div>
+                    </div>
+                    <div class="stick-values">
+                        <div>X: <span class="x-value">${(action.analog.stickRX || 0).toFixed(1)}</span></div>
+                        <div>Y: <span class="y-value">${(action.analog.stickRY || 0).toFixed(1)}</span></div>
+                    </div>
+                    <button class="reset-stick-btn" onclick="commandEditor.resetStick(${index}, 'right')">Reset</button>
+                </div>
+            </div>
+        </div>
+    `;
 	}
 
 	updateCommandField(field, value) {
@@ -458,7 +525,20 @@ class CommandEditor {
 			action.digital[button] = true;
 		}
 		this.isDirty = true;
-		this.renderActions();
+		this.updateButtonVisual(actionIndex, button, !!action.digital[button]);
+	}
+
+	updateButtonVisual(actionIndex, button, isActive) {
+		const buttonElement = document.querySelector(
+			`.action-item:nth-child(${actionIndex + 1}) .button-toggle:nth-child(${this.availableButtons.indexOf(button) + 1})`
+		);
+		if (buttonElement) {
+			if (isActive) {
+				buttonElement.classList.add('active');
+			} else {
+				buttonElement.classList.remove('active');
+			}
+		}
 	}
 
 	updateAnalog(actionIndex, stick, value) {
@@ -483,7 +563,6 @@ class CommandEditor {
 		container.innerHTML = this.commands.map((cmd, index) => `
             <div class="command-item ${index === this.currentCommandIndex ? 'active' : ''}" 
                  onclick="commandEditor.loadCommand(${index})">
-                <strong>Command ${index + 1}</strong>
                 <div class="command-item-keywords">${cmd.keywords.join(', ')}</div>
             </div>
         `).join('');
@@ -515,7 +594,6 @@ class CommandEditor {
 
 	exportConfig() {
 		const config = {
-			name: configName,
 			timestamp: new Date().toISOString(),
 			commands: this.commands
 		};
@@ -524,7 +602,7 @@ class CommandEditor {
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `${configName.replace(/\s+/g, '-')}.json`;
+		a.download = `ChatCommands.json`;
 		a.click();
 		URL.revokeObjectURL(url);
 
@@ -554,11 +632,6 @@ class CommandEditor {
 				this.currentCommand = null;
 				this.currentCommandIndex = -1;
 				this.isDirty = false;
-
-				// Update the config name if provided
-				if (config.name) {
-					document.getElementById('configName').value = config.name;
-				}
 
 				this.updateCommandList();
 				this.renderEditor();
@@ -607,6 +680,223 @@ class CommandEditor {
 			container.style.display = 'none';
 		}, 5000);
 	}
+
+	initializeStickControls() {
+		// Initialize stick drag functionality after rendering
+		this.bindStickEvents();
+		this.updateAllStickPositions();
+	}
+
+	bindStickEvents() {
+		// Remove existing listeners to prevent duplicates
+		if (this.stickEventsBound) {
+			document.removeEventListener('mousedown', this.handleStickMouseDown);
+			document.removeEventListener('mousemove', this.handleStickMouseMove);
+			document.removeEventListener('mouseup', this.handleStickMouseUp);
+			document.removeEventListener('touchstart', this.handleStickTouchStart);
+			document.removeEventListener('touchmove', this.handleStickTouchMove);
+			document.removeEventListener('touchend', this.handleStickTouchEnd);
+		}
+
+		this.isDraggingStick = false;
+		this.currentStickData = null;
+
+		// Bind the methods to maintain 'this' context
+		this.handleStickMouseDown = this.handleStickMouseDown.bind(this);
+		this.handleStickMouseMove = this.handleStickMouseMove.bind(this);
+		this.handleStickMouseUp = this.handleStickMouseUp.bind(this);
+		this.handleStickTouchStart = this.handleStickTouchStart.bind(this);
+		this.handleStickTouchMove = this.handleStickTouchMove.bind(this);
+		this.handleStickTouchEnd = this.handleStickTouchEnd.bind(this);
+
+		// Add event listeners
+		document.addEventListener('mousedown', this.handleStickMouseDown);
+		document.addEventListener('mousemove', this.handleStickMouseMove);
+		document.addEventListener('mouseup', this.handleStickMouseUp);
+		document.addEventListener('touchstart', this.handleStickTouchStart, { passive: false });
+		document.addEventListener('touchmove', this.handleStickTouchMove, { passive: false });
+		document.addEventListener('touchend', this.handleStickTouchEnd);
+
+		this.stickEventsBound = true;
+	}
+
+	getStickAreaFromEvent(e) {
+		const target = e.target;
+		if (target.classList.contains('stick-area')) {
+			return target;
+		}
+		if (target.classList.contains('stick-thumb')) {
+			return target.parentElement;
+		}
+		return target.closest('.stick-area');
+	}
+
+	calculateStickValues(stickArea, clientX, clientY) {
+		const rect = stickArea.getBoundingClientRect();
+		const centerX = rect.left + rect.width / 2;
+		const centerY = rect.top + rect.height / 2;
+
+		// Calculate relative position from center
+		let x = (clientX - centerX) / (rect.width / 2);
+		let y = -(clientY - centerY) / (rect.height / 2); // Negative because Y increases downward in DOM
+
+		// Clamp to bounds
+		if (x > 1) x = 1;
+		if (x < -1) x = -1;
+		if (y > 1) y = 1;
+		if (y < -1) y = -1;
+
+		// Round to reasonable precision
+		x = Math.round(x * 20) / 20;
+		y = Math.round(y * 20) / 20;
+
+		return { x, y };
+	}
+
+	updateStickVisualPosition(actionIndex, stickName, x, y) {
+		const stickArea = document.querySelector(`.stick-area[data-stick="${stickName}"][data-action="${actionIndex}"]`);
+		if (!stickArea) return;
+
+		const thumb = stickArea.querySelector('.stick-thumb');
+		const valueContainer = stickArea.parentElement.querySelector('.stick-values');
+
+		// Update thumb position (convert from -1,1 range to pixel position)
+		const centerX = stickArea.offsetWidth / 2;
+		const centerY = stickArea.offsetHeight / 2;
+		const thumbX = centerX + (x * (stickArea.offsetWidth / 2 - 8)); // -8 for thumb radius
+		const thumbY = centerY - (y * (stickArea.offsetHeight / 2 - 8)); // Negative because Y is flipped
+
+		thumb.style.left = thumbX + 'px';
+		thumb.style.top = thumbY + 'px';
+
+		// Update value display
+		valueContainer.querySelector('.x-value').textContent = x.toFixed(1);
+		valueContainer.querySelector('.y-value').textContent = y.toFixed(1);
+	}
+
+	updateAllStickPositions() {
+		if (!this.currentCommand) return;
+
+		this.currentCommand.actions.forEach((action, actionIndex) => {
+			// Update left stick
+			const leftX = action.analog.stickLX || 0;
+			const leftY = action.analog.stickLY || 0;
+			this.updateStickVisualPosition(actionIndex, 'left', leftX, leftY);
+
+			// Update right stick
+			const rightX = action.analog.stickRX || 0;
+			const rightY = action.analog.stickRY || 0;
+			this.updateStickVisualPosition(actionIndex, 'right', rightX, rightY);
+		});
+	}
+
+	handleStickMouseDown(e) {
+		const stickArea = this.getStickAreaFromEvent(e);
+		if (!stickArea) return;
+
+		e.preventDefault();
+		this.startStickDrag(stickArea, e.clientX, e.clientY);
+	}
+
+	handleStickTouchStart(e) {
+		const stickArea = this.getStickAreaFromEvent(e);
+		if (!stickArea) return;
+
+		e.preventDefault();
+		const touch = e.touches[0];
+		this.startStickDrag(stickArea, touch.clientX, touch.clientY);
+	}
+
+	startStickDrag(stickArea, clientX, clientY) {
+		this.isDraggingStick = true;
+		this.currentStickData = {
+			stickName: stickArea.dataset.stick,
+			actionIndex: parseInt(stickArea.dataset.action),
+			stickArea: stickArea
+		};
+
+		const thumb = stickArea.querySelector('.stick-thumb');
+		thumb.classList.add('dragging');
+
+		// Immediately update position
+		const values = this.calculateStickValues(stickArea, clientX, clientY);
+		this.updateStickPosition(this.currentStickData.actionIndex, this.currentStickData.stickName, values.x, values.y);
+	}
+
+	handleStickMouseMove(e) {
+		if (!this.isDraggingStick) return;
+		this.continueStickDrag(e.clientX, e.clientY);
+	}
+
+	handleStickTouchMove(e) {
+		if (!this.isDraggingStick) return;
+		e.preventDefault();
+		const touch = e.touches[0];
+		this.continueStickDrag(touch.clientX, touch.clientY);
+	}
+
+	continueStickDrag(clientX, clientY) {
+		const values = this.calculateStickValues(this.currentStickData.stickArea, clientX, clientY);
+		this.updateStickPosition(this.currentStickData.actionIndex, this.currentStickData.stickName, values.x, values.y);
+	}
+
+	handleStickMouseUp() {
+		this.endStickDrag();
+	}
+
+	handleStickTouchEnd() {
+		this.endStickDrag();
+	}
+
+	endStickDrag() {
+		if (!this.isDraggingStick) return;
+
+		this.isDraggingStick = false;
+
+		if (this.currentStickData) {
+			const thumb = this.currentStickData.stickArea.querySelector('.stick-thumb');
+			thumb.classList.remove('dragging');
+		}
+
+		this.currentStickData = null;
+	}
+
+	updateStickPosition(actionIndex, stickName, x, y) {
+		const action = this.currentCommand.actions[actionIndex];
+
+		// Update the action data
+		if (stickName === 'left') {
+			if (x === 0) {
+				delete action.analog.stickLX;
+			} else {
+				action.analog.stickLX = x;
+			}
+			if (y === 0) {
+				delete action.analog.stickLY;
+			} else {
+				action.analog.stickLY = y;
+			}
+		} else if (stickName === 'right') {
+			if (x === 0) {
+				delete action.analog.stickRX;
+			} else {
+				action.analog.stickRX = x;
+			}
+			if (y === 0) {
+				delete action.analog.stickRY;
+			} else {
+				action.analog.stickRY = y;
+			}
+		}
+
+		this.isDirty = true;
+		this.updateStickVisualPosition(actionIndex, stickName, x, y);
+	}
+
+	resetStick(actionIndex, stickName) {
+		this.updateStickPosition(actionIndex, stickName, 0, 0);
+	}
+
 }
 
 // Initialize the editor
@@ -622,6 +912,14 @@ window.addEventListener('beforeunload', (e) => {
 	if (commandEditor.isDirty) {
 		e.preventDefault();
 		e.returnValue = '';
+	}
+	if (this.stickEventsBound) {
+		document.removeEventListener('mousedown', this.handleStickMouseDown);
+		document.removeEventListener('mousemove', this.handleStickMouseMove);
+		document.removeEventListener('mouseup', this.handleStickMouseUp);
+		document.removeEventListener('touchstart', this.handleStickTouchStart);
+		document.removeEventListener('touchmove', this.handleStickTouchMove);
+		document.removeEventListener('touchend', this.handleStickTouchEnd);
 	}
 });
 

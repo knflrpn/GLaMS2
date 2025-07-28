@@ -20,7 +20,6 @@
 			padding: 20px;
 			background: rgba(255, 255, 255, 0.05);
 			border-radius: 12px;
-			backdrop-filter: blur(10px);
 			border: 1px solid rgba(255, 255, 255, 0.1);
 		}
 
@@ -65,7 +64,7 @@
 
 		.command-item-keywords {
 			font-size: 0.85rem;
-			color: #a0a0a0;
+			color: #ffffff;
 			margin-top: 4px;
 		}
 
@@ -371,6 +370,109 @@
 			color: #e0e0e0;
 			margin-bottom: 10px;
 		}
+
+		/* Stick control styles */
+		.stick-control {
+			background: rgba(255, 255, 255, 0.03);
+			padding: 15px;
+			border-radius: 6px;
+			border: 1px solid rgba(255, 255, 255, 0.05);
+			text-align: center;
+		}
+
+		.stick-control h5 {
+			margin: 0 0 10px 0;
+			color: #e0e0e0;
+		}
+
+		.stick-area {
+			width: 100px;
+			height: 100px;
+			background: rgba(255, 255, 255, 0.1);
+			box-shadow: 0 0 3px 0 black;
+			border-radius: 8px;
+			position: relative;
+			margin: 0 auto 10px auto;
+			cursor: crosshair;
+			user-select: none;
+		}
+
+		.stick-thumb {
+			width: 14px;
+			height: 14px;
+			background: #6366f1;
+			border: 2px solid #ffffff;
+			border-radius: 50%;
+			position: absolute;
+			cursor: grab;
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+			transition: transform 0.1s ease;
+			transform: translate(-50%, -50%);
+		}
+
+		.stick-thumb.dragging {
+			cursor: grabbing;
+			transform: translate(-50%, -50%) scale(1.2);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+		}
+
+		.stick-values {
+			text-align: center;
+			font-size: 0.8rem;
+			color: #a5b4fc;
+			font-family: monospace;
+			line-height: 1.2;
+		}
+
+		.center-cross {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			width: 16px;
+			height: 16px;
+			opacity: 0.3;
+			pointer-events: none;
+		}
+
+		.center-cross::before,
+		.center-cross::after {
+			content: '';
+			position: absolute;
+			background: #ffffff;
+		}
+
+		.center-cross::before {
+			top: 50%;
+			left: 0;
+			right: 0;
+			height: 1px;
+			transform: translateY(-50%);
+		}
+
+		.center-cross::after {
+			left: 50%;
+			top: 0;
+			bottom: 0;
+			width: 1px;
+			transform: translateX(-50%);
+		}
+
+		.reset-stick-btn {
+			background: rgba(255, 255, 255, 0.1);
+			border: 1px solid rgba(255, 255, 255, 0.2);
+			color: #e0e0e0;
+			padding: 2px 6px;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 0.7rem;
+			margin-top: 5px;
+			transition: background 0.2s ease;
+		}
+
+		.reset-stick-btn:hover {
+			background: rgba(255, 255, 255, 0.15);
+		}
 	</style>
 </head>
 
@@ -391,6 +493,10 @@
 				<button class="button small" style="width: 100%; margin-top: 10px;"
 					onclick="commandEditor.newCommand()">
 					+ New Command
+				</button>
+				<button class="button small danger" style="width: 100%; margin-top: 10px;"
+					onclick="commandEditor.clearCommands()">
+					- Clear All
 				</button>
 			</div>
 
