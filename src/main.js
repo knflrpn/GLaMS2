@@ -82,7 +82,7 @@ class SwiCCApplication {
 	 */
 	createManagers() {
 		// Create managers in dependency order
-		this.managers.ui = new UIManager();
+		this.managers.ui = new UIManager(this.engine);
 		this.managers.connection = new ConnectionManager(this.engine, this.managers.ui);
 		this.managers.pipeline = new PipelineManager(this.pipeline, this.managers.ui);
 		this.managers.broadcast = new BroadcastManager(this.pipeline, this.managers.ui);

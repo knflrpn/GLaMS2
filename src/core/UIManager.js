@@ -5,7 +5,8 @@
  * This is the foundation that other managers will use for UI operations
  */
 export class UIManager {
-	constructor() {
+	constructor(engine) {
+		this.engine = engine;
 		this.messagesEnabled = true;
 		this.elements = this.getElements();
 		this.elements.messagesEnabled.addEventListener('change', () => {
@@ -16,6 +17,7 @@ export class UIManager {
 		// Initialize UI state
 		this.initializeButtonGrid();
 		this.initializeConfigCollapse();
+		this.initializeRumbleEnable();
 	}
 
 	/**
@@ -45,6 +47,8 @@ export class UIManager {
 			gpButtonGrid: document.getElementById('gpButtonGrid'),
 			leftStick: document.getElementById('leftStick'),
 			rightStick: document.getElementById('rightStick'),
+			rumbleEnabled: document.getElementById('rumbleEnabled'),
+			rumbleStatus: document.getElementById('rumbleStatus'),
 
 			// Configuration elements
 			presetSelector: document.getElementById('presetSelector'),
@@ -98,6 +102,15 @@ export class UIManager {
 		).join('');
 	}
 
+	initializeRumbleEnable() {
+		this.addEventListenerSafe('rumbleEnabled', 'change', (event) => {
+			const enabled = event.target.checked;
+			this.engine.setRumbleEnabled(enabled);
+			this.updateRumbleStatus(enabled);
+			this.logMessage(`Rumble ${enabled ? 'enabled' : 'disabled'}`);
+		});
+	}
+
 	/**
 	 * Initialize configuration panel collapse/expand functionality
 	 */
@@ -142,6 +155,29 @@ export class UIManager {
 			this.clearButtonStates();
 			this.clearStickPositions();
 		}
+	}
+
+	/**
+	 * Update rumble status display
+	 * @param {boolean} enabled - Current rumble enabled state
+	 */
+	updateRumbleStatus(enabled) {
+		if (this.elements.rumbleStatus) {
+			this.elements.rumbleStatus.textContent = enabled ? 'Enabled' : 'Disabled';
+			this.elements.rumbleStatus.className = `${enabled ? 'enabled' : 'disabled'}`;
+		}
+
+		if (this.elements.rumbleEnabled) {
+			this.elements.rumbleEnabled.checked = enabled;
+		}
+	}
+
+	/**
+	 * Get current rumble enabled checkbox state
+	 * @returns {boolean} Checkbox state
+	 */
+	getRumbleEnabled() {
+		return this.getCheckboxState('rumbleEnabled');
 	}
 
 	/**

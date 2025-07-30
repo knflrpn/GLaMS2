@@ -24,6 +24,10 @@ class SerialComm {
 		// Reading state
 		this.isReading = false;
 		this.readingTask = null;
+
+		// Rumble state
+		this.rumbleHighFreq = 0;
+		this.rumbleLowFreq = 0;
 	}
 
 	/**
@@ -444,7 +448,9 @@ class SerialComm {
  * @property {() => void}      [onDisconnect]      - called once when the port is lost
  * @property {(message: string) => void} [onMessage] - called for each complete message received
  * @property {boolean} [autoInterrogate=true]      - automatically query device info on connect
- * @property {number} [interrogateTimeout=1000]    - timeout for device interrogation in ms
+ * @property {number} [interrogateTimeout=250]    - timeout for device interrogation in ms
+ * @property {number} [maxInterrogateRetries=3]    - maximum number of interrogation retry attempts
+ * @property {number} [retryDelay=500]             - delay between interrogation retries in ms
  */
 
 /**
@@ -462,31 +468,40 @@ export class SwiCCSink {
 		onMessage = (msg) => { this.logMessage(msg); },
 		logMessage = (msg) => { console.log(msg); },
 		autoInterrogate = true,
-		interrogateTimeout = 2000
+		interrogateTimeout = 2000,
+		maxInterrogateRetries = 3,
+		retryDelay = 500
 	} = {}) {
-    /** @private */ this.filters = filters;
-    /** @private */ this.serialOptions = serialOptions;
-    /** @private */ this.comm = new SerialComm();
-    /** @private {SerialPort|null} */ this._port = null;
-    /** @private */ this._isConnected = false;
-    /** @private */ this.onDisconnect = onDisconnect;
-    /** @private */ this.onMessage = onMessage;
-    /** @private */ this.logMessage = logMessage;
-    /** @private */ this.autoInterrogate = autoInterrogate;
-    /** @private */ this.interrogateTimeout = interrogateTimeout;
+		/** @private */ this.filters = filters;
+		/** @private */ this.serialOptions = serialOptions;
+		/** @private */ this.comm = new SerialComm();
+		/** @private {SerialPort|null} */ this._port = null;
+		/** @private */ this._isConnected = false;
+		/** @private */ this.onDisconnect = onDisconnect;
+		/** @private */ this.onMessage = onMessage;
+		/** @private */ this.logMessage = logMessage;
+		/** @private */ this.autoInterrogate = autoInterrogate;
+		/** @private */ this.interrogateTimeout = interrogateTimeout;
+		/** @private */ this.maxInterrogateRetries = maxInterrogateRetries;
+		/** @private */ this.retryDelay = retryDelay;
 
-    // Device information
-    /** @private */ this._deviceId = null;
-    /** @private */ this._deviceVersion = null;
-    /** @private */ this._isInterrogated = false;
+		// Device information
+		/** @private */ this._deviceId = null;
+		/** @private */ this._deviceVersion = null;
+		/** @private */ this._isInterrogated = false;
 
-    // Interrogation state
-    /** @private */ this._interrogationPromise = null;
-    /** @private */ this._interrogationResolve = null;
-    /** @private */ this._interrogationReject = null;
-    /** @private */ this._interrogationTimeout = null;
-    /** @private */ this._awaitingIdResponse = false;
-    /** @private */ this._awaitingVersionResponse = false;
+		// Interrogation state
+		/** @private */ this._interrogationPromise = null;
+		/** @private */ this._interrogationResolve = null;
+		/** @private */ this._interrogationReject = null;
+		/** @private */ this._interrogationTimeout = null;
+		/** @private */ this._awaitingIdResponse = false;
+		/** @private */ this._awaitingVersionResponse = false;
+		/** @private */ this._currentRetryAttempt = 0;
+
+		// Rumble state
+		/** @private */ this._rumbleHighFreq = 0;
+		/** @private */ this._rumbleLowFreq = 0;
 
 		// bind once so we can remove later
 		this._handlePortDisconnect = this._handlePortDisconnect.bind(this);
@@ -502,7 +517,6 @@ export class SwiCCSink {
 	async requestPort() {
 		try {
 			this._port = await navigator.serial.requestPort({ filters: this.filters });
-			console.log('[SwiCCSink] Port selected');
 		} catch (err) {
 			console.error('[SwiCCSink] No port selected:', err);
 			throw err;
@@ -535,12 +549,10 @@ export class SwiCCSink {
 			this.comm.startReading(this._handleMessage.bind(this), this._handleReadError);
 			readingStarted = true;
 
-			console.log('[SwiCCSink] Connected to device');
-
 			// Automatically interrogate device if enabled
 			if (this.autoInterrogate) {
 				try {
-					await this._interrogateDevice();
+					await this._interrogateDeviceWithRetries();
 				} catch (interrogationErr) {
 					// If interrogation fails, clean up and re-throw
 					console.error('[SwiCCSink] Device interrogation failed during initialization:', interrogationErr);
@@ -715,6 +727,8 @@ export class SwiCCSink {
 		this._deviceVersion = null;
 		this._isInterrogated = false;
 		this._lastIMUSample = null;
+		this._rumbleHighFreq = 0;
+		this._rumbleLowFreq = 0;
 
 		// Remove event listener
 		navigator.serial.removeEventListener('disconnect', this._handlePortDisconnect);
@@ -777,7 +791,43 @@ export class SwiCCSink {
 		if (!this._isConnected) {
 			throw new Error('Not connected to device');
 		}
-		return await this._interrogateDevice();
+		return await this._interrogateDeviceWithRetries();
+	}
+
+	/**
+	 * Internal method to interrogate the device with retry logic.
+	 * @private
+	 * @returns {Promise<{id: string, version: string}>}
+	 */
+	async _interrogateDeviceWithRetries() {
+		let lastError = null;
+
+		for (let attempt = 1; attempt <= this.maxInterrogateRetries; attempt++) {
+			try {
+				this._currentRetryAttempt = attempt;
+				this.logMessage(`[SwiCCSink] Interrogation attempt ${attempt}/${this.maxInterrogateRetries}`);
+
+				const result = await this._interrogateDevice();
+				this._currentRetryAttempt = 0;
+				return result;
+			} catch (err) {
+				lastError = err;
+				this.logMessage(`[SwiCCSink] Interrogation attempt ${attempt} failed: ${err.message}`);
+
+				// Clean up any partial interrogation state
+				this._cleanupInterrogation();
+
+				// If this isn't the last attempt, wait before retrying
+				if (attempt < this.maxInterrogateRetries) {
+					this.logMessage(`[SwiCCSink] Retrying in ${this.retryDelay}ms...`);
+					await new Promise(resolve => setTimeout(resolve, this.retryDelay));
+				}
+			}
+		}
+
+		// All attempts failed
+		this._currentRetryAttempt = 0;
+		throw new Error(`Device interrogation failed after ${this.maxInterrogateRetries} attempts. Last error: ${lastError?.message || 'Unknown error'}`);
 	}
 
 	/**
@@ -797,8 +847,9 @@ export class SwiCCSink {
 
 			// Set up timeout
 			this._interrogationTimeout = setTimeout(() => {
+				const timeoutError = new Error(`Device interrogation timeout after ${this.interrogateTimeout}ms`);
 				this._cleanupInterrogation();
-				reject(new Error('Device interrogation timeout'));
+				reject(timeoutError);
 			}, this.interrogateTimeout);
 
 			// Start the interrogation sequence
@@ -811,7 +862,7 @@ export class SwiCCSink {
 			this.logMessage('Device interrogated successfully: ' + JSON.stringify(result, null, 2));
 			return result;
 		} catch (err) {
-			this.logMessage('Device interrogation failed: ' + err);
+			this.logMessage('Device interrogation failed: ' + err.message);
 			throw err;
 		} finally {
 			this._cleanupInterrogation();
@@ -850,6 +901,11 @@ export class SwiCCSink {
 			}
 		}
 
+		// Check if this is a rumble message and handle it
+		if (this._handleRumbleMessage(message)) {
+			// Don't forward rumble messages to normal message handler
+			return;
+		}
 		// Normal message handling
 		this.onMessage(message);
 	}
@@ -915,6 +971,47 @@ export class SwiCCSink {
 		this._interrogationReject = null;
 		this._awaitingIdResponse = false;
 		this._awaitingVersionResponse = false;
+	}
+
+	/**
+	 * Handle rumble messages from the device.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a rumble message, false otherwise
+	 */
+	_handleRumbleMessage(message) {
+		const trimmed = message.trim();
+
+		// Check if this is a rumble message: "+RMBL ABCDEF"
+		const rumbleMatch = trimmed.match(/^\+RMBL\s+([0-9A-Fa-f]{6})$/);
+		if (rumbleMatch) {
+			const hexData = rumbleMatch[1];
+
+			// Extract the bytes: AB (ignored), CD (high freq), EF (low freq)
+			// CD is bytes 2-3 (characters 2-4)
+			const cdHex = hexData.substring(2, 4);
+			// EF is bytes 4-5 (characters 4-6)
+			const efHex = hexData.substring(4, 6);
+
+			// Convert hex strings to decimal values
+			this._rumbleLowFreq = parseInt(efHex, 16) / 12;
+			if (this._rumbleLowFreq > 1) this._rumbleLowFreq = 1;
+			this._rumbleHighFreq = parseInt(cdHex, 16) / 25;
+			if (this._rumbleHighFreq > 1) this._rumbleHighFreq = 1;
+			// Turn off rumble based on low freq
+			if (this._rumbleLowFreq == 0) this._rumbleHighFreq = 0;
+
+			return true; // This was a rumble message
+		}
+
+		return false; // This was not a rumble message
+	}
+
+	getRumble() {
+		return {
+			rumbleHighFreq: this._rumbleHighFreq,
+			rumbleLowFreq: this._rumbleLowFreq,
+		}
 	}
 
 	/**

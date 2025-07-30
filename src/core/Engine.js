@@ -2,16 +2,13 @@
  * ./src/core/Engine.js
  *
  * Main engine that orchestrates the flow from input sources through 
- * manipulators to output sinks.
+ * manipulators to output sinks, with rumble feedback support.
  */
 
-import { GamepadSource } from '../sources/GamepadSource.js';
-import { SwiCCSink } from './SwiCCSink.js';
 import { ManipulatorPipeline } from '../manipulators/ManipulatorPipeline.js';
 
 /**
  * @typedef {Object} EngineOptions
- * @property {number} [frameRate=60] - Target frame rate in FPS
  * @property {boolean} [autoStart=true] - Start the engine automatically
  */
 
@@ -23,13 +20,12 @@ export class Engine {
 	 * @param {EngineOptions} options
 	 */
 	constructor(options = {}) {
-		this.frameRate = options.frameRate || 60;
-		this.frameInterval = 1000 / this.frameRate;
 		this.autoStart = options.autoStart ?? true;
 
 		// Core components
 		this.sources = new Map(); // name -> source
 		this.sinks = new Map();   // name -> sink
+		this.rumbleEnabled = true;
 		this.pipeline = new ManipulatorPipeline();
 
 		// Runtime state
@@ -51,7 +47,7 @@ export class Engine {
 	/**
 	 * Add an input source.
 	 * @param {string} name - Unique name for this source
-	 * @param {Object} source - Source object with getState() method
+	 * @param {Object} source - Source object with getState() method and optional setRumble() method
 	 */
 	addSource(name, source) {
 		if (typeof source.getState !== 'function') {
@@ -64,7 +60,7 @@ export class Engine {
 	/**
 	 * Add an output sink.
 	 * @param {string} name - Unique name for this sink
-	 * @param {Object} sink - Sink object with send() method
+	 * @param {Object} sink - Sink object with send() method and optional getRumble() method
 	 */
 	addSink(name, sink) {
 		if (typeof sink.send !== 'function') {
@@ -142,6 +138,60 @@ export class Engine {
 	}
 
 	/**
+	 * Collect rumble values from all sinks.
+	 * @private
+	 * @returns {Object} Combined rumble values
+	 */
+	collectRumbleFromSinks() {
+		let combinedRumble = {
+			rumbleLowFreq: 0,
+			rumbleHighFreq: 0
+		};
+
+		for (const [sinkName, sink] of this.sinks) {
+			try {
+				// Check if sink supports rumble feedback
+				if (typeof sink.getRumble === 'function') {
+					const rumble = sink.getRumble();
+					if (rumble) {
+						// Combine rumble values (taking maximum)
+						combinedRumble.rumbleLowFreq = Math.max(
+							combinedRumble.rumbleLowFreq,
+							rumble.rumbleLowFreq || 0
+						);
+						combinedRumble.rumbleHighFreq = Math.max(
+							combinedRumble.rumbleHighFreq,
+							rumble.rumbleHighFreq || 0
+						);
+					}
+				}
+			} catch (err) {
+				console.error(`[Engine] Error getting rumble from sink ${sinkName}:`, err);
+			}
+		}
+
+		return combinedRumble;
+	}
+
+	/**
+	 * Send rumble values to all sources that support it.
+	 * @private
+	 * @param {Object} rumble - Rumble values to send
+	 */
+	sendRumbleToSources(rumble) {
+		for (const [sourceName, source] of this.sources) {
+			try {
+				// Check if source supports rumble feedback
+				if (typeof source.setRumble === 'function') {
+					source.setRumble(rumble);
+				}
+			} catch (err) {
+				console.error(`[Engine] Error sending rumble to source ${sourceName}:`, err);
+			}
+		}
+	}
+
+	/**
 	 * Process one frame of input/output.
 	 * @private
 	 */
@@ -178,7 +228,39 @@ export class Engine {
 			}
 		}
 
+		if (this.rumbleEnabled) {
+			// Collect rumble feedback from sinks and send to sources
+			const rumbleValues = this.collectRumbleFromSinks();
+			if (rumbleValues.rumbleLowFreq > 0 || rumbleValues.rumbleHighFreq > 0) {
+				this.sendRumbleToSources(rumbleValues);
+			}
+		}
+
 		this.stats.framesProcessed++;
+	}
+
+	/**
+	 * Enable or disable rumble globally
+	 * @param {boolean} enabled - Whether rumble should be enabled
+	 */
+	setRumbleEnabled(enabled) {
+		this.rumbleEnabled = enabled;
+
+		// If disabling, send zero rumble to all sources to stop any ongoing rumble
+		if (!enabled) {
+			this.sendRumbleToSources({
+				rumbleLowFreq: 0,
+				rumbleHighFreq: 0
+			});
+		}
+	}
+
+	/**
+	 * Get current rumble enabled state
+	 * @returns {boolean} Current rumble enabled state
+	 */
+	getRumbleEnabled() {
+		return this.rumbleEnabled;
 	}
 
 	/**
@@ -188,7 +270,6 @@ export class Engine {
 	getStatus() {
 		return {
 			isRunning: this.isRunning,
-			frameRate: this.frameRate,
 			actualFPS: this.stats.lastFPS,
 			sources: Array.from(this.sources.keys()),
 			sinks: Array.from(this.sinks.keys()),
