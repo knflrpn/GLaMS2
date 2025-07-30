@@ -197,7 +197,7 @@ export class InputDelay extends BaseManipulator {
 		const bufferState = this.stateBuffer[this.writeIndex];
 		Object.assign(bufferState.digital, state.digital);
 		Object.assign(bufferState.analog, state.analog);
-		bufferState.imuSamples = state.imuSamples.map(s => ({ ...s }));
+		Object.assign(bufferState.imuSample, state.imuSample);
 		
 		// Store the timestamp
 		this.timestampBuffer[this.writeIndex] = now + this.delayMs;
@@ -254,8 +254,8 @@ export class InputDelay extends BaseManipulator {
 			neutralState.analog.stickRX = 0;
 			neutralState.analog.stickRY = 0;
 			
-			// Clear IMU samples
-			neutralState.imuSamples = [];
+			// Clear IMU sample
+			neutralState.imuSample = {};
 			
 			return neutralState;
 		}

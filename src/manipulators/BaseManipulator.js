@@ -270,7 +270,7 @@ export class BaseManipulator {
 		Object.assign(newState.analog, state.analog);
 
 		// Copy IMU samples
-		newState.imuSamples = state.imuSamples.map(s => ({ ...s }));
+		newState.imuSample = state.imuSample.map(s => ({ ...s }));
 
 		return newState;
 	}

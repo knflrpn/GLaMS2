@@ -178,6 +178,14 @@
 				</div>
 
 				<div class="color-control">
+					<label for="stickBaseColor">Stick Highlight Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="stickBaseColor" class="color-input" value="#000f3d">
+						<input type="text" id="stickBaseColorText" class="color-text" value="#000f3d">
+					</div>
+				</div>
+
+				<div class="color-control">
 					<label for="innerColor">Inner Color:</label>
 					<div class="color-input-group">
 						<input type="color" id="innerColor" class="color-input" value="#008015">
@@ -190,6 +198,14 @@
 					<div class="color-input-group">
 						<input type="color" id="outerColor" class="color-input" value="#00d619">
 						<input type="text" id="outerColorText" class="color-text" value="#00d619">
+					</div>
+				</div>
+
+				<div class="color-control">
+					<label for="disabledColor">Disabled Color:</label>
+					<div class="color-input-group">
+						<input type="color" id="disabledColor" class="color-input" value="#00d619">
+						<input type="text" id="disabledColorText" class="color-text" value="#00d619">
 					</div>
 				</div>
 
@@ -231,6 +247,8 @@
 					base: localStorage.getItem('controller-color-base') || '#060490',
 					inner: localStorage.getItem('controller-color-inner') || '#008015',
 					outer: localStorage.getItem('controller-color-outer') || '#00d619',
+					stickBase: localStorage.getItem('controller-color-stick-base') || '#000f3d',
+					disabled: localStorage.getItem('controller-color-disabled') || '#988888',
 					body: localStorage.getItem('controller-color-body') || '#5e5e5e',
 					accent: localStorage.getItem('controller-color-accent') || '#ffffff',
 					background: localStorage.getItem('controller-color-background') || '#000000'
@@ -242,7 +260,9 @@
 				// Original stick positions
 				this.stickPositions = {
 					leftStick: { x: 108, y: 165 },
-					rightStick: { x: 304, y: 232 }
+					rightStick: { x: 304, y: 232 },
+					leftStickOuter: { x: 108, y: 165 },
+					rightStickOuter: { x: 304, y: 232 }
 				};
 
 				// Current state hash for change detection
@@ -283,6 +303,7 @@
 					'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
 					'buttonPlus', 'buttonMinus', 'buttonHome', 'buttonCapture',
 					'buttonThumbL', 'buttonThumbR',
+					'buttonThumbLOuter', 'buttonThumbROuter',
 					'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight'
 				];
 
@@ -298,6 +319,8 @@
 				// Special handling for analog sticks (don't apply button colors to these)
 				this.elements.leftStick = this.svgElement.querySelector('#leftStick');
 				this.elements.rightStick = this.svgElement.querySelector('#rightStick');
+				this.elements.leftStickOuter = this.svgElement.querySelector('#leftStickOuter');
+				this.elements.rightStickOuter = this.svgElement.querySelector('#rightStickOuter');
 
 				// Handle body element separately (don't apply button colors to this)
 				this.elements.body = this.svgElement.querySelector('#body');
@@ -346,6 +369,7 @@
 				// Create a hash of the current state for change detection
 				const innerState = snapshots.inner && snapshots.inner.state;
 				const outerState = snapshots.outer && snapshots.outer.state;
+				const disabledState = snapshots.disabled && snapshots.disabled.state;
 
 				return JSON.stringify({
 					inner: innerState ? {
@@ -355,6 +379,10 @@
 					outer: outerState ? {
 						digital: outerState.digital,
 						analog: outerState.analog
+					} : null,
+					disabled: disabledState ? {
+						digital: disabledState.digital,
+						analog: disabledState.analog
 					} : null
 				});
 			}
@@ -372,8 +400,9 @@
 				// Get states
 				const innerState = snapshots.inner && snapshots.inner.state;
 				const outerState = snapshots.outer && snapshots.outer.state;
+				const disabledState = snapshots.disabled && snapshots.disabled.state;
 
-				if (!innerState && !outerState) {
+				if (!innerState && !outerState && !disabledState) {
 					// Reset to base state (buttons only, not body)
 					const allButtons = [
 						'buttonA', 'buttonB', 'buttonX', 'buttonY',
@@ -390,6 +419,8 @@
 					// Reset analog sticks
 					this.updateAnalogStick('leftStick', 0, 0);
 					this.updateAnalogStick('rightStick', 0, 0);
+					this.updateAnalogStick('leftStickOuter', 0, 0);
+					this.updateAnalogStick('rightStickOuter', 0, 0);
 					return;
 				}
 
@@ -398,7 +429,6 @@
 					'buttonA', 'buttonB', 'buttonX', 'buttonY',
 					'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
 					'buttonPlus', 'buttonMinus', 'buttonHome', 'buttonCapture',
-					'buttonThumbL', 'buttonThumbR',
 					'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight'
 				];
 
@@ -406,37 +436,68 @@
 					// Determine button states
 					const innerPressed = innerState && innerState.digital && innerState.digital[buttonName];
 					const outerPressed = outerState && outerState.digital && outerState.digital[buttonName];
+					const disabledPressed = disabledState && disabledState.digital && disabledState.digital[buttonName];
 
 					// Apply layered coloring logic
 					let fillColor, strokeColor;
 
+					// In general, disabled overrides base and inner if present.
+					// Neither inner nor outer active
 					if (!innerPressed && !outerPressed) {
 						// Base color for both fill and stroke
-						fillColor = strokeColor = this.colors.base;
-					} else if (innerPressed && !outerPressed) {
+						fillColor = strokeColor = disabledPressed ? this.colors.disabled : this.colors.base;
+					}
+					// Inner active, outer not active
+					else if (innerPressed && !outerPressed) {
 						// Inner highlight for both fill and stroke
-						fillColor = strokeColor = this.colors.inner;
-					} else if (innerPressed && outerPressed) {
+						fillColor = strokeColor = disabledPressed ? this.colors.disabled : this.colors.inner;
+					}
+					// Inner and outer both active
+					else if (innerPressed && outerPressed) {
 						// Inner fill, outer stroke (outer overrides stroke)
-						fillColor = this.colors.inner;
+						fillColor = disabledPressed ? this.colors.disabled : this.colors.inner;
 						strokeColor = this.colors.outer;
-					} else if (!innerPressed && outerPressed) {
+					}
+					// Outer active, inner not active
+					else if (!innerPressed && outerPressed) {
 						// Base fill, outer stroke (outer overrides stroke only)
-						fillColor = this.colors.base;
+						fillColor = disabledPressed ? this.colors.disabled : this.colors.base;
 						strokeColor = this.colors.outer;
 					}
 
 					this.updateButtonColors(buttonName, fillColor, strokeColor);
 				});
 
-				// Update analog sticks (use most recent state available)
-				const analogState = outerState || innerState;
-				if (analogState && analogState.analog) {
-					this.updateAnalogStick('leftStick', analogState.analog.leftX, analogState.analog.leftY);
-					this.updateAnalogStick('rightStick', analogState.analog.rightX, analogState.analog.rightY);
+				// Thumbstick buttons require unique handling.
+				const leftThumbInner = innerState && innerState.digital && innerState.digital['buttonThumbL'];
+				const rightThumbInner = innerState && innerState.digital && innerState.digital['buttonThumbL'];
+				const leftThumbOuter = outerState && outerState.digital && outerState.digital['buttonThumbL'];
+				const rightThumbOuter = outerState && outerState.digital && outerState.digital['buttonThumbL'];
+
+				if (leftThumbInner) this.updateButtonColors('buttonThumbL', this.colors.inner, this.colors.inner);
+				else this.updateButtonColors('buttonThumbL', this.colors.base, this.colors.base);
+				if (rightThumbInner) this.updateButtonColors('buttonThumbR', this.colors.inner, this.colors.inner);
+				else this.updateButtonColors('buttonThumbR', this.colors.base, this.colors.base);
+				if (leftThumbOuter) this.updateButtonColors('buttonThumbLOuter', this.colors.outer, this.colors.outer);
+				else this.updateButtonColors('buttonThumbLOuter', this.colors.stickBase, this.colors.stickBase);
+				if (rightThumbOuter) this.updateButtonColors('buttonThumbROuter', this.colors.outer, this.colors.outer);
+				else this.updateButtonColors('buttonThumbROuter', this.colors.stickBase, this.colors.stickBase);
+
+
+				// Update analog sticks
+				if (innerState && innerState.analog) {
+					this.updateAnalogStick('leftStick', innerState.analog.leftX, innerState.analog.leftY);
+					this.updateAnalogStick('rightStick', innerState.analog.rightX, innerState.analog.rightY);
 				} else {
 					this.updateAnalogStick('leftStick', 0, 0);
 					this.updateAnalogStick('rightStick', 0, 0);
+				}
+				if (outerState && outerState.analog) {
+					this.updateAnalogStick('leftStickOuter', outerState.analog.leftX, outerState.analog.leftY);
+					this.updateAnalogStick('rightStickOuter', outerState.analog.rightX, outerState.analog.rightY);
+				} else {
+					this.updateAnalogStick('leftStickOuter', 0, 0);
+					this.updateAnalogStick('rightStickOuter', 0, 0);
 				}
 			}
 
@@ -447,6 +508,8 @@
 				localStorage.setItem('controller-color-base', this.colors.base);
 				localStorage.setItem('controller-color-inner', this.colors.inner);
 				localStorage.setItem('controller-color-outer', this.colors.outer);
+				localStorage.setItem('controller-color-stick-base', this.colors.stickBase);
+				localStorage.setItem('controller-color-disabled', this.colors.disabled);
 				localStorage.setItem('controller-color-body', this.colors.body);
 				localStorage.setItem('controller-color-accent', this.colors.accent);
 				localStorage.setItem('controller-color-background', this.colors.background);
@@ -471,7 +534,8 @@
 				// Current snapshot data
 				this.currentSnapshots = {
 					inner: null,
-					outer: null
+					outer: null,
+					disabled: null
 				};
 
 				// Callbacks
@@ -512,6 +576,11 @@
 
 					if (data.snapshots.outer) {
 						this.currentSnapshots.outer = data.snapshots.outer;
+						updated = true;
+					}
+
+					if (data.snapshots.disabled) {
+						this.currentSnapshots.disabled = data.snapshots.disabled;
 						updated = true;
 					}
 
@@ -572,6 +641,10 @@
 		const innerColorText = document.getElementById('innerColorText');
 		const outerColorPicker = document.getElementById('outerColor');
 		const outerColorText = document.getElementById('outerColorText');
+		const stickBaseColorPicker = document.getElementById('stickBaseColor');
+		const stickBaseColorText = document.getElementById('stickBaseColorText');
+		const disabledColorPicker = document.getElementById('disabledColor');
+		const disabledColorText = document.getElementById('disabledColorText');
 		const bodyColorPicker = document.getElementById('bodyColor');
 		const bodyColorText = document.getElementById('bodyColorText');
 		const accentColorPicker = document.getElementById('accentColor');
@@ -592,6 +665,10 @@
 			innerColorText.value = visualizer.colors.inner;
 			outerColorPicker.value = visualizer.colors.outer;
 			outerColorText.value = visualizer.colors.outer;
+			stickBaseColorPicker.value = visualizer.colors.stickBase;
+			stickBaseColorText.value = visualizer.colors.stickBase;
+			disabledColorPicker.value = visualizer.colors.disabled;
+			disabledColorText.value = visualizer.colors.disabled;
 			bodyColorPicker.value = visualizer.colors.body;
 			bodyColorText.value = visualizer.colors.body;
 			accentColorPicker.value = visualizer.colors.accent;
@@ -643,6 +720,8 @@
 		setupColorPicker(baseColorPicker, baseColorText, 'base');
 		setupColorPicker(innerColorPicker, innerColorText, 'inner');
 		setupColorPicker(outerColorPicker, outerColorText, 'outer');
+		setupColorPicker(stickBaseColorPicker, stickBaseColorText, 'stickBase');
+		setupColorPicker(disabledColorPicker, disabledColorText, 'disabled');
 		setupColorPicker(bodyColorPicker, bodyColorText, 'body');
 		setupColorPicker(accentColorPicker, accentColorText, 'accent');
 		setupColorPicker(backgroundColorPicker, backgroundColorText, 'background');
