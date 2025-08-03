@@ -137,12 +137,6 @@ export class A2D extends BaseManipulator {
 			handler: (params) => this.setThreshold(params.threshold)
 		});
 
-		this.registerAction({
-			name: 'toggleBoth',
-			displayName: 'Toggle Both Sticks',
-			description: 'Toggle both left and right stick conversions',
-			handler: () => this.toggleBoth()
-		});
 	}
 
 	/**
@@ -213,16 +207,6 @@ export class A2D extends BaseManipulator {
 		return this.threshold;
 	}
 
-	/**
-	 * Toggle both stick conversions
-	 */
-	toggleBoth() {
-		const newState = !(this.enableLeft && this.enableRight);
-		this.setLeftEnabled(newState);
-		this.setRightEnabled(newState);
-		return newState;
-	}
-
 	_processInternal(state, deltaTime) {
 		// Left stick to D-Pad conversion
 		if (this.enableLeft) {
@@ -232,8 +216,8 @@ export class A2D extends BaseManipulator {
 			// Convert to D-Pad based on threshold
 			state.digital.dpadLeft = lx < -this.threshold;
 			state.digital.dpadRight = lx > this.threshold;
-			state.digital.dpadUp = ly > this.threshold;
-			state.digital.dpadDown = ly < -this.threshold;
+			state.digital.dpadUp = ly > -this.threshold;
+			state.digital.dpadDown = ly < this.threshold;
 
 			// Optionally neutralize analog
 			if (!this.passLeftAnalog) {
@@ -369,15 +353,6 @@ export class A2D extends BaseManipulator {
 		// Quick actions
 		const actionsDiv = document.createElement('div');
 		actionsDiv.className = 'quick-actions';
-
-		const toggleBtn = document.createElement('button');
-		toggleBtn.textContent = 'Toggle Both';
-		toggleBtn.className = 'button small';
-		toggleBtn.addEventListener('click', () => {
-			this.executeAction('toggleBoth');
-		});
-
-		actionsDiv.appendChild(toggleBtn);
 
 		// Assemble UI
 		container.appendChild(mainControls);

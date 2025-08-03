@@ -26,7 +26,7 @@
 <circle style="fill:#050509;stroke:#050509" id="buttonHome" cx="25" cy="24" r="8" />
 <circle style="fill:#050509;stroke:#050509" id="buttonCapture" cx="-25" cy="24" r="8" />
 </g>
-<g id="dpad-buttons" transform="translate(166.64656,231.9491)">
+<g id="dpad-buttons" transform="translate(175,232)">
 <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadUp" transform="rotate(180),translate(0,10)" />
 <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadRight" transform="rotate(-90),translate(0,10)" />
 <path style="fill:#050509;stroke:#050509" d="M 0,0 C 6,0 10,10 10,13 V 26 C 10,28 -10,28 -10,26 V 13 C -10,10 -6,0 0,0 Z" id="dpadDown" transform="translate(0,10)" />

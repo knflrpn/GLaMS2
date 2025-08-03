@@ -738,7 +738,7 @@ class CommandEditor {
 
 		// Calculate relative position from center
 		let x = (clientX - centerX) / (rect.width / 2);
-		let y = -(clientY - centerY) / (rect.height / 2); // Negative because Y increases downward in DOM
+		let y = (clientY - centerY) / (rect.height / 2);
 
 		// Clamp to bounds
 		if (x > 1) x = 1;
@@ -764,7 +764,7 @@ class CommandEditor {
 		const centerX = stickArea.offsetWidth / 2;
 		const centerY = stickArea.offsetHeight / 2;
 		const thumbX = centerX + (x * (stickArea.offsetWidth / 2 - 8)); // -8 for thumb radius
-		const thumbY = centerY - (y * (stickArea.offsetHeight / 2 - 8)); // Negative because Y is flipped
+		const thumbY = centerY + (y * (stickArea.offsetHeight / 2 - 8));
 
 		thumb.style.left = thumbX + 'px';
 		thumb.style.top = thumbY + 'px';

@@ -244,6 +244,7 @@ export class BaseManipulator {
 	/**
 	 * Internal process method that subclasses should implement.
 	 * Only called when the manipulator is enabled.
+	 * In general, manipulators should directly modify state.
 	 * 
 	 * @param {import('../core/ControllerState.js').ControllerState} state
 	 * @param {number} deltaTime - Time since last frame in milliseconds
@@ -270,7 +271,7 @@ export class BaseManipulator {
 		Object.assign(newState.analog, state.analog);
 
 		// Copy IMU samples
-		newState.imuSample = state.imuSample.map(s => ({ ...s }));
+		Object.assign(newState.imuSample, state.imuSample);
 
 		return newState;
 	}

@@ -1,7 +1,6 @@
 // ./src/main.js (Refactored)
 
 // Import core engine components
-import { ControllerState } from './core/ControllerState.js';
 import { GamepadSource } from './sources/GamepadSource.js';
 import { Engine } from './core/Engine.js';
 import { ActionMessageHandler } from './core/ActionMessageHandler.js';

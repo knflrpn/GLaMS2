@@ -10,9 +10,11 @@ import { TurboButton } from './TurboButton.js';
 import { ButtonRemap } from './ButtonRemap.js';
 import { InputDelay } from './InputDelay.js';
 import { A2D } from './A2D.js';
+import { D2A } from './D2A.js';
 import { ChatCommand } from './ChatCommand.js';
 import { Shaker } from './Shaker.js';
 import { MouseMotion } from './MouseMotion.js';
+import { KeyboardControl } from './KeyboardControl.js';
 
 /**
  * @typedef {Object} BroadcastConfig
@@ -34,9 +36,11 @@ export class ManipulatorPipeline {
 		ButtonRemap,
 		InputDelay,
 		A2D,
+		D2A,
 		ChatCommand,
 		Shaker,
 		MouseMotion,
+		KeyboardControl,
 		// Add more manipulator types here as needed
 	];
 
