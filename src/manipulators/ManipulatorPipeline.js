@@ -7,11 +7,13 @@
 
 import { BaseManipulator } from './BaseManipulator.js';
 import { TurboButton } from './TurboButton.js';
+import { Cooldown } from './Cooldown.js';
 import { ButtonRemap } from './ButtonRemap.js';
 import { InputDelay } from './InputDelay.js';
 import { A2D } from './A2D.js';
 import { D2A } from './D2A.js';
 import { ChatCommand } from './ChatCommand.js';
+import { MouseControl } from './MouseControl.js';
 import { Shaker } from './Shaker.js';
 import { MouseMotion } from './MouseMotion.js';
 import { KeyboardControl } from './KeyboardControl.js';
@@ -35,9 +37,11 @@ export class ManipulatorPipeline {
 		TurboButton,
 		ButtonRemap,
 		InputDelay,
+		Cooldown,
 		A2D,
 		D2A,
 		ChatCommand,
+		MouseControl,
 		Shaker,
 		MouseMotion,
 		KeyboardControl,

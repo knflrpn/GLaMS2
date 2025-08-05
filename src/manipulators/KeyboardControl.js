@@ -654,10 +654,10 @@ export class KeyboardControl extends BaseManipulator {
 		addMappingGroup.appendChild(addTitle);
 		addMappingGroup.appendChild(addForm);
 
-		// Status display
-		const status = document.createElement('div');
-		status.className = 'info-box';
-		status.innerHTML = `
+		// Info box
+		const infobox = document.createElement('div');
+		infobox.className = 'info-box';
+		infobox.innerHTML = `
 			<p><strong>Note:</strong> Window must have focus to read keyboard input.</p>
 			<p><strong>Default Mappings:</strong> D-pad = WASD | ABXY = LKPO | LR = EI | ZL/ZR = Q[</p>
 		`;
@@ -667,7 +667,7 @@ export class KeyboardControl extends BaseManipulator {
 		this._mappingContainer.className = 'keyboard-mappings-container';
 
 		container.appendChild(captureGroup);
-		container.appendChild(status);
+		container.appendChild(infobox);
 		container.appendChild(quickActions);
 		container.appendChild(addMappingGroup);
 		container.appendChild(this._mappingContainer);

@@ -491,6 +491,15 @@ body {
 	border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
+.help-box {
+	margin-top: 8px;
+	padding: 8px;
+	background: #e9ecef0f;
+	border-radius: 4px;
+	font-size: 0.85em;
+	line-height: 1.4;
+}
+
 .info-box p {
 	color: #93c5fd;
 	margin: 0;

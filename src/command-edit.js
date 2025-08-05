@@ -273,6 +273,7 @@ class CommandEditor {
 			this.isDirty = true;
 			this.updateActionNumbers();
 			this.updateMoveButtonStates();
+			this.renderActions();
 		}
 	}
 

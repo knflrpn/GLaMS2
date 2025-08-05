@@ -82,7 +82,7 @@ export class ChatCommand extends BaseManipulator {
 		this.maxMessages = params.maxMessages || 50;
 		this.configName = params.configName || 'default';
 		this.processInOrder = params.processInOrder || false;
-		this.maxDuration = 2000; // maximum duration that a command can run for
+		this.maxDuration = 4000; // maximum duration that a command can run for
 
 		// WebSocket connection
 		this.ws = null;
@@ -911,6 +911,12 @@ export class ChatCommand extends BaseManipulator {
 		connectionDiv.appendChild(this._statusIndicator);
 		connectionDiv.appendChild(buttongrouper);
 
+		// Info box
+		const infobox = document.createElement('div');
+		infobox.className = 'info-box';
+		infobox.innerHTML = `
+			<p><strong>Note:</strong> Commands globally limited to ${this.maxDuration}ms.</p>
+		`;
 		// Queue status
 		const queueDiv = document.createElement('div');
 		queueDiv.className = 'manipulator-control-group';
@@ -960,6 +966,7 @@ export class ChatCommand extends BaseManipulator {
 
 		// Assemble UI
 		container.appendChild(connectionDiv);
+		container.appendChild(infobox);
 		container.appendChild(queueDiv);
 		container.appendChild(messageDiv);
 

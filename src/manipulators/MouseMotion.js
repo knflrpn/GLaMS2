@@ -34,7 +34,7 @@ export class MouseMotion extends BaseManipulator {
 	}
 
 	static get displayName() {
-		return "Mouse Motion";
+		return "Mouse to Motion";
 	}
 
 	static get requiredSwiCC() {
@@ -901,7 +901,7 @@ export class MouseMotion extends BaseManipulator {
 
 		// Help text
 		const helpDiv = document.createElement('div');
-		helpDiv.className = 'mouseMotion-help';
+		helpDiv.className = 'help-box';
 		helpDiv.innerHTML = `
 			<strong>Usage:</strong> Click "Start Capture" to lock the mouse cursor. 
 			Move the mouse to control controller orientation:<br>
@@ -973,15 +973,6 @@ export class MouseMotion extends BaseManipulator {
 			
 			.mouseMotion-custom .mouseMotion-pivot-distance.enabled {
 				opacity: 1;
-			}
-			
-			.mouseMotion-custom .mouseMotion-help {
-				margin-top: 8px;
-				padding: 8px;
-				background: #e9ecef0f;
-				border-radius: 4px;
-				font-size: 0.85em;
-				line-height: 1.4;
 			}
 			
 			.mouseMotion-custom .button.active {
