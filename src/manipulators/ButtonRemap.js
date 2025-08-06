@@ -421,6 +421,10 @@ export class ButtonRemap extends BaseManipulator {
 	_processInternal(state, deltaTime) {
 		// Create a blank state for the output
 		const newState = new ControllerState;
+		// Copy analog inputs
+		Object.assign(newState.analog, state.analog);
+		// Copy IMU samples
+		Object.assign(newState.imuSample, state.imuSample);
 
 		// Apply mappings
 		this.mappings.forEach((outputs, input) => {
