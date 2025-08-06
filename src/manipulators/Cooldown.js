@@ -43,7 +43,10 @@ export class Cooldown extends BaseManipulator {
 
 		this.buttonCooldown = params.buttonCooldown ?? 500;
 		this.stickCooldown = params.stickCooldown ?? 1000;
-		this.cooldownButtons = new Set(params.cooldownButtons || []);
+		this.cooldownButtons = new Set(params.cooldownButtons || 
+			["buttonA", "buttonB", "buttonX", "buttonY", "buttonL", 
+				"buttonR", "buttonZL", "buttonZR", "dpadUp", "dpadDown", 
+				"dpadLeft", "dpadRight", "buttonThumbL", "buttonThumbR"]);
 		this.enableLeftStick = params.enableLeftStick ?? true;
 		this.enableRightStick = params.enableRightStick ?? true;
 		this.stickThreshold = 0.1;
@@ -452,16 +455,13 @@ export class Cooldown extends BaseManipulator {
 
 		// Main settings
 		const mainControls = document.createElement('div');
-		mainControls.className = 'manipulator-control-group-horizontal';
+		mainControls.className = 'manipulator-control-group';
 
 		// Button cooldown settings
 		const buttonDiv = document.createElement('div');
-		const buttonTitle = document.createElement('h4');
-		buttonTitle.textContent = 'Button Cooldown';
-		buttonDiv.appendChild(buttonTitle);
 
 		const buttonCooldownLabel = document.createElement('label');
-		buttonCooldownLabel.textContent = 'Cooldown (ms): ';
+		buttonCooldownLabel.textContent = 'Button Cooldown (ms): ';
 
 		this._buttonCooldownInput = document.createElement('input');
 		this._buttonCooldownInput.type = 'number';
@@ -479,12 +479,9 @@ export class Cooldown extends BaseManipulator {
 
 		// Stick ratchet settings
 		const stickDiv = document.createElement('div');
-		const stickTitle = document.createElement('h4');
-		stickTitle.textContent = 'Stick Ratchet';
-		stickDiv.appendChild(stickTitle);
 
 		const stickCooldownLabel = document.createElement('label');
-		stickCooldownLabel.textContent = 'Cooldown (ms): ';
+		stickCooldownLabel.textContent = 'Stick Cooldown (ms): ';
 
 		this._stickCooldownInput = document.createElement('input');
 		this._stickCooldownInput.type = 'number';
@@ -619,7 +616,7 @@ export class Cooldown extends BaseManipulator {
 
 		// Quick actions
 		const quickActions = document.createElement('div');
-		quickActions.className = 'quick-actions';
+		quickActions.className = 'quick-actions inline-with-gap';
 
 		const clearButtonsBtn = document.createElement('button');
 		clearButtonsBtn.textContent = 'Clear Buttons';
@@ -628,15 +625,7 @@ export class Cooldown extends BaseManipulator {
 			this.executeAction('clearButtons');
 		});
 
-		const resetRatchetsBtn = document.createElement('button');
-		resetRatchetsBtn.textContent = 'Reset Ratchets';
-		resetRatchetsBtn.className = 'button small';
-		resetRatchetsBtn.addEventListener('click', () => {
-			this.executeAction('resetStickRatchets');
-		});
-
 		quickActions.appendChild(clearButtonsBtn);
-		quickActions.appendChild(resetRatchetsBtn);
 
 		// Assemble the UI
 		container.appendChild(mainControls);

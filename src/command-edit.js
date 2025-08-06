@@ -614,6 +614,15 @@ class CommandEditor {
 		const file = event.target.files[0];
 		if (file) {
 			this.loadConfigFile(file);
+			event.target.value = '';
+		}
+	}
+
+	appendConfig(event) {
+		const file = event.target.files[0];
+		if (file) {
+			this.appendConfigFile(file);
+			event.target.value = '';
 		}
 	}
 
@@ -639,6 +648,58 @@ class CommandEditor {
 				this.showStatus('Configuration imported successfully!', 'success');
 			} catch (error) {
 				this.showStatus('Failed to import configuration: ' + error.message, 'error');
+			}
+		};
+		reader.readAsText(file);
+	}
+
+	appendConfigFile(file) {
+		const reader = new FileReader();
+		reader.onload = (e) => {
+			try {
+				const config = JSON.parse(e.target.result);
+
+				// Validate the config structure
+				if (!config.commands || !Array.isArray(config.commands)) {
+					throw new Error('Invalid configuration format');
+				}
+
+				// Get existing keywords for comparison
+				const existingKeywords = new Set();
+				this.commands.forEach(cmd => {
+					cmd.keywords.forEach(keyword => {
+						existingKeywords.add(keyword.toLowerCase());
+					});
+				});
+
+				// Filter out commands that have any overlapping keywords
+				const newCommands = config.commands.filter(newCmd => {
+					// Check if any of this command's keywords already exist
+					return !newCmd.keywords.some(keyword =>
+						existingKeywords.has(keyword.toLowerCase())
+					);
+				});
+
+				// Add the new commands
+				this.commands.push(...newCommands);
+
+				// Update UI
+				this.updateCommandList();
+				this.renderEditor();
+
+				const addedCount = newCommands.length;
+				const skippedCount = config.commands.length - newCommands.length;
+
+				let message = `Added ${addedCount} new command(s)`;
+				if (skippedCount > 0) {
+					message += `, skipped ${skippedCount} existing command(s)`;
+				}
+
+				this.showStatus(message, 'success');
+				this.autoSave();
+
+			} catch (error) {
+				this.showStatus('Failed to append configuration: ' + error.message, 'error');
 			}
 		};
 		reader.readAsText(file);
