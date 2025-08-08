@@ -104,6 +104,11 @@ export class ExternalControlManager {
 	 */
 	setupDefaultHandlers() {
 		// Pipeline control handlers
+		this.registerMessageHandler('response', (data) => {
+			// Ignore responses
+			return;
+		});
+
 		this.registerMessageHandler('executeAction', (data) => {
 			return this.handleExecuteAction(data);
 		});

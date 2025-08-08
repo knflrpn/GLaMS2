@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Gamepad to SwiCC Interface</title>
+	<link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+	<div class="container">
+		<div class="main-content">
+			<!-- Header -->
+			<div class="header">
+				<h1>Gamepad to SwiCC Interface</h1>
+				<p>Connect your gamepad to SwiCC devices via Web Serial</p>
+			</div>
+
+			<!-- Left Panel - Connection Status -->
+			<div class="left">
+				<div class="stack">
+					<!-- SwiCC Connection Panel -->
+					<div class="panel">
+						<h2>
+							<span class="status-indicator" id="swiccStatusIndicator"></span>
+							SwiCC Connection
+						</h2>
+
+						<div class="swicc-connection">
+							<div class="swicc-header">
+								<h3>Primary Device</h3>
+								<span class="connection-status disconnected" id="connectionStatus">Disconnected</span>
+							</div>
+
+							<div class="status-grid">
+								<div class="status-item">
+									<label>Device ID</label>
+									<div class="value" id="deviceId">-</div>
+								</div>
+								<div class="status-item">
+									<label>Version</label>
+									<div class="value" id="deviceVersion">-</div>
+								</div>
+								<div class="status-item">
+									<label>Queue Size</label>
+									<div class="value" id="queueSize">-</div>
+								</div>
+								<div class="status-item">
+									<label>Queue Remaining</label>
+									<div class="value" id="queueRemaining">-</div>
+								</div>
+							</div>
+
+							<div class="swicc-controls">
+								<button class="button" id="connectBtn">Connect SwiCC</button>
+								<button class="button danger" id="disconnectBtn" disabled>Disconnect</button>
+							</div>
+						</div>
+						<div class="vsync-controls">
+							<h4>VSYNC Configuration</h4>
+							<div class="vsync-input-group">
+								<label for="vsyncDelay">Delay (µs):</label>
+								<input type="number" id="vsyncDelay" min="0" max="65535" value="10000" step="1">
+								<button class="button" id="useVsyncBtn" disabled>Use VSYNC</button>
+							</div>
+						</div>
+					</div>
+
+					<!-- Gamepad Status Panel -->
+					<div class="panel">
+						<h2>
+							<span class="status-indicator" id="gamepadStatusIndicator"></span>
+							Gamepad Status
+						</h2>
+
+						<div id="gamepadName">No gamepad detected</div>
+
+						<div class="gamepad-status">
+							<div class="gamepad-buttons">
+								<h4>Buttons</h4>
+								<div class="button-feedback-grid" id="buttonGrid">
+									<!-- Buttons will be populated dynamically -->
+								</div>
+							</div>
+
+							<div class="gamepad-sticks">
+								<h4>Analog Sticks</h4>
+								<div class="stick-display">
+									<div class="stick-values" id="leftStick">Left: X: 0.00, Y: 0.00</div>
+									<div class="stick-values" id="rightStick">Right: X: 0.00, Y: 0.00</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Right Panel - Controls -->
+			<div class="right">
+				<div class="stack">
+					<!-- Playback Controls -->
+					<div class="panel">
+						<h2>Playback Controls</h2>
+
+						<div class="broadcast-actions">
+							<button class="button" id="playMacroBtn" disabled>Play Macro</button>
+							<button class="button danger" id="stopPlaybackBtn" disabled>Stop Playback</button>
+						</div>
+
+						<div class="playback-status">
+							<div class="status-item">
+								<label>Status</label>
+								<div class="value" id="currentStatus">Stopped</div>
+							</div>
+							<div class="status-item" id="macroProgressContainer">
+								<label>Macro Progress</label>
+								<div class="value" id="macroProgress">-</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Macro Script Panel -->
+					<div class="panel" id="macroPanel">
+						<h2>Macro Script</h2>
+
+						<div class="macro-editor">
+							<textarea id="macroScript" placeholder="Enter macro script here...
+Example:
+{A} [0.5, 0.0, 0.0, 0.0]
+{} [0.0, 0.0, 0.0, 0.0]
+{B X} [-1.0, 1.0, 0.5, -0.5]
+{U L1} [0.0, 0.0, 0.0, 0.0]"></textarea>
+
+							<div class="macro-controls">
+								<button class="button" id="validateMacroBtn">Validate Script</button>
+								<button class="button" id="loadExampleBtn">Load Example</button>
+								<button class="button" id="clearMacroBtn">Clear</button>
+							</div>
+
+							<div class="macro-info">
+								<div class="status-item">
+									<label>Lines</label>
+									<div class="value" id="macroLineCount">0</div>
+								</div>
+								<div class="status-item">
+									<label>Duration</label>
+									<div class="value" id="macroDuration">0.0s</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="help-box">
+							<strong>Macro Format:</strong>
+							<ul>
+								<li>Each line represents one frame (1/60th second)</li>
+								<li>Buttons: {A B X Y U D L R h c + - L1 L2 L3 R1 R2 R3}</li>
+								<li>Analog sticks: [leftX, leftY, rightX, rightY] (values -1.0 to 1.0)</li>
+								<li>Both buttons and analog values are optional</li>
+								<li>Empty line or {} means no buttons pressed</li>
+								<li>Missing analog values default to neutral (0.0)</li>
+							</ul>
+						</div>
+					</div>
+
+					<!-- Instructions Panel -->
+					<div class="panel" id="instructionsPanel">
+						<h2>Instructions</h2>
+						<div class="help-box">
+							<strong>Getting Started:</strong>
+							<ol>
+								<li>Connect a gamepad to your computer</li>
+								<li>Click "Connect SwiCC" and select your serial device</li>
+								<li>Write a macro script and click "Play Macro" to execute it</li>
+								<li>Macro playback temporarily pauses passthrough, then resumes when complete</li>
+							</ol>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Messages Panel -->
+			<div class="messages">
+				<h3>System Messages</h3>
+				<div id="messageLog"></div>
+			</div>
+		</div>
+	</div>
+
+	<style>
+		.broadcast-actions {
+			display: flex;
+			gap: 0.5rem;
+			flex-wrap: wrap;
+			margin-bottom: 1rem;
+		}
+
+		.broadcast-actions button {
+			flex: 1;
+			min-width: 120px;
+		}
+
+		.playback-status {
+			margin-top: 1rem;
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 1rem;
+		}
+
+		.macro-editor {
+			display: flex;
+			flex-direction: column;
+			gap: 1rem;
+		}
+
+		#macroScript {
+			width: 100%;
+			height: 200px;
+			font-family: 'Courier New', monospace;
+			font-size: 12px;
+			padding: 0.5rem;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			resize: vertical;
+		}
+
+		.macro-controls {
+			display: flex;
+			gap: 0.5rem;
+			flex-wrap: wrap;
+		}
+
+		.macro-controls button {
+			flex: 1;
+			min-width: 80px;
+		}
+
+		.macro-info {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			gap: 1rem;
+		}
+
+		.help-box ul {
+			margin: 0.5rem 0;
+			padding-left: 1.5rem;
+		}
+
+		.help-box li {
+			margin-bottom: 0.25rem;
+		}
+
+		.message.success {
+			color: #28a745;
+		}
+
+		.message.error {
+			color: #dc3545;
+		}
+
+		.message.warning {
+			color: #ffc107;
+		}
+	</style>
+
+	<script type="module">
+		import { MacrosInterface } from './src/macros.js';
+
+		// Check for Web Serial support
+		if (!('serial' in navigator)) {
+			alert('Web Serial API is not supported in this browser. Please use Chrome, Edge, or Opera.');
+		} else {
+			// Initialize the application
+			new MacrosInterface();
+		}
+	</script>
+</body>
+
+</html>

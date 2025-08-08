@@ -17,6 +17,8 @@ import { MouseControl } from './MouseControl.js';
 import { Shaker } from './Shaker.js';
 import { MouseMotion } from './MouseMotion.js';
 import { KeyboardControl } from './KeyboardControl.js';
+import { Sticky } from './Sticky.js';
+import { Toggle } from './Toggle.js';
 
 /**
  * @typedef {Object} BroadcastConfig
@@ -45,6 +47,8 @@ export class ManipulatorPipeline {
 		Shaker,
 		MouseMotion,
 		KeyboardControl,
+		Sticky,
+		Toggle,
 		// Add more manipulator types here as needed
 	];
 

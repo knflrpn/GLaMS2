@@ -519,7 +519,7 @@ export class BroadcastManager {
 	dispose() {
 		try {
 			// Close display window
-			this.closeDisplayWindow();
+			//this.closeDisplayWindow();
 
 			// Remove snapshot indicators
 			this.uiManager.removeSnapshotIndicators();

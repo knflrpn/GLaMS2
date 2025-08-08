@@ -4,7 +4,7 @@ import { ControllerState } from './ControllerState.js';
 
 /**
  * Internal helper that wraps a SerialPort + writer
- * and exposes a simple send(state, includeAnalog) API.
+ * and exposes a simple send API.
  */
 class SerialComm {
 	constructor() {
@@ -468,9 +468,9 @@ export class SwiCCSink {
 		onMessage = (msg) => { this.logMessage(msg); },
 		logMessage = (msg) => { console.log(msg); },
 		autoInterrogate = true,
-		interrogateTimeout = 2000,
+		interrogateTimeout = 1000,
 		maxInterrogateRetries = 3,
-		retryDelay = 500
+		retryDelay = 200
 	} = {}) {
 		/** @private */ this.filters = filters;
 		/** @private */ this.serialOptions = serialOptions;
@@ -503,11 +503,17 @@ export class SwiCCSink {
 		/** @private */ this._rumbleHighFreq = 0;
 		/** @private */ this._rumbleLowFreq = 0;
 
+		// Buffer state
+		/** @private */ this._queueSize = 1024;
+		/** @private */ this._queueRemaining = 1023;
+
 		// bind once so we can remove later
 		this._handlePortDisconnect = this._handlePortDisconnect.bind(this);
 		this._handleReadError = this._handleReadError.bind(this);
 		this._handleInterrogationMessage = this._handleInterrogationMessage.bind(this);
 		navigator.serial.addEventListener('disconnect', this._handlePortDisconnect);
+
+		this._initCommandHandlers();
 	}
 
 	/**
@@ -657,6 +663,13 @@ export class SwiCCSink {
 	}
 
 	/**
+	 * Initiate a queue space remaining check.
+	 */
+	initiateQueueCheck() {
+		this.sendMessage("+GQR ");
+	}
+
+	/**
 	 * Send an arbitrary string message to the SwiCC.
 	 * If the write fails (e.g. port unplugged), we tear down,
 	 * call onDisconnect once, and swallow further errors.
@@ -784,6 +797,22 @@ export class SwiCCSink {
 	}
 
 	/**
+	 * Get the amount of queue space remaining.
+	 * @returns {boolean}
+	 */
+	get queueRemaining() {
+		return this._queueRemaining;
+	}
+
+	/**
+	 * Get the size of the queue.
+	 * @returns {boolean}
+	 */
+	get queueSize() {
+		return this._queueSize;
+	}
+
+	/**
 	 * Manually interrogate the device for ID and version.
 	 * @returns {Promise<{id: string, version: string}>}
 	 */
@@ -894,20 +923,210 @@ export class SwiCCSink {
 	_handleMessage(message) {
 		// If interrogating, sniff the message to check if it's a response.
 		if (this._interrogationPromise) {
-			const wasInterrogationMessage = this._handleInterrogationMessage(message);
 			// If it was an interrogation response, don't pass it on.
-			if (wasInterrogationMessage) {
+			if (this._handleInterrogationMessage(message)) {
 				return;
 			}
 		}
 
-		// Check if this is a rumble message and handle it
-		if (this._handleRumbleMessage(message)) {
-			// Don't forward rumble messages to normal message handler
+		// Try to handle as a command message
+		if (this._handleCommandMessage(message)) {
+			// Don't forward command messages to normal message handler
 			return;
 		}
+
 		// Normal message handling
 		this.onMessage(message);
+	}
+
+	/**
+	 * Handle command messages using registered handlers.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a command message, false otherwise
+	 */
+	_handleCommandMessage(message) {
+		const trimmed = message.trim();
+
+		// Check if this looks like a command message (starts with +)
+		if (!trimmed.startsWith('+')) {
+			return false;
+		}
+
+		// Try each registered command handler
+		for (const [command, handler] of this._commandHandlers) {
+			if (handler.call(this, trimmed)) {
+				return true; // Message was handled
+			}
+		}
+
+		return false; // No handler matched
+	}
+
+	/**
+	 * Initialize command handlers registry.
+	 * @private
+	 */
+	_initCommandHandlers() {
+		this._commandHandlers = new Map([
+			['RMBL', this._handleRumbleCommand],
+			['GRR', this._handleGrrCommand],
+			['GRS', this._handleGrsCommand],
+			['REC', this._handleRecCommand],
+			['GR', this._handleGrCommand],
+			['GQR', this._handleGqrCommand],
+			['GQS', this._handleGqsCommand],
+			// Add more command handlers here as needed
+		]);
+	}
+
+	/**
+	 * Handle rumble messages from the device.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a rumble message, false otherwise
+	 */
+	_handleRumbleCommand(message) {
+		// Check if this is a rumble message: "+RMBL ABCDEF"
+		const rumbleMatch = message.match(/^\+RMBL\s+([0-9A-Fa-f]{6})$/);
+		if (rumbleMatch) {
+			const hexData = rumbleMatch[1];
+
+			// Extract the bytes: AB (ignored), CD (high freq), EF (low freq)
+			// CD is bytes 2-3 (characters 2-4)
+			const cdHex = hexData.substring(2, 4);
+			// EF is bytes 4-5 (characters 4-6)
+			const efHex = hexData.substring(4, 6);
+
+			// Convert hex strings to decimal values
+			this._rumbleLowFreq = parseInt(efHex, 16) / 12;
+			if (this._rumbleLowFreq > 1) this._rumbleLowFreq = 1;
+			this._rumbleHighFreq = parseInt(cdHex, 16) / 25;
+			if (this._rumbleHighFreq > 1) this._rumbleHighFreq = 1;
+			// Turn off rumble based on low freq
+			if (this._rumbleLowFreq == 0) this._rumbleHighFreq = 0;
+
+			return true; // This was a rumble message
+		}
+
+		return false; // This was not a rumble message
+	}
+
+	/**
+	 * Handle GRR command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a GRR message, false otherwise
+	 */
+	_handleGrrCommand(message) {
+		const grrMatch = message.match(/^\+GRR\s+([0-9A-Fa-f]{4})$/);
+		if (grrMatch) {
+			const params = grrMatch[1];
+			// Parse GRR parameters here
+
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Handle GRS command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a GRS message, false otherwise
+	 */
+	_handleGrsCommand(message) {
+		const grsMatch = message.match(/^\+GRS\s+([0-9A-Fa-f]{4})$/);
+		if (grsMatch) {
+			const params = grsMatch[1];
+			// Parse GRS parameters here
+
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Handle REC command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a REC message, false otherwise
+	 */
+	_handleRecCommand(message) {
+		const recMatch = message.match(/^\+REC\s+([0-9A-Fa-f]{1})$/);
+		if (recMatch) {
+			const params = recMatch[1];
+			// Parse REC parameters here
+
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Handle GR command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a GR message, false otherwise
+	 */
+	_handleGrCommand(message) {
+		const grMatch = message.match(/^\+GR\s+([0-9A-Fa-f]{1})$/);
+		if (grMatch) {
+			const params = grMatch[1];
+			// Parse GR parameters here
+
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Handle R command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a R message, false otherwise
+	 */
+	_handleGrCommand(message) {
+		const grMatch = message.match(/^\+R\s+([0-9A-Fa-f]{18})x([0-9A-Fa-f]{2})$/);
+		if (grMatch) {
+			const params = grMatch[1];
+			// Parse GR parameters here
+
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Handle GQR command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a GQR message, false otherwise
+	 */
+	_handleGqrCommand(message) {
+		const gqrMatch = message.match(/^\+GQR\s+([0-9A-Fa-f]{4})$/);
+		if (gqrMatch) {
+			const params = gqrMatch[1];
+			this._queueRemaining = parseInt(params, 16)
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Handle GQS command messages.
+	 * @private
+	 * @param {string} message
+	 * @returns {boolean} true if this was a GQS message, false otherwise
+	 */
+	_handleGqsCommand(message) {
+		const gqsMatch = message.match(/^\+GQS\s+([0-9A-Fa-f]{4})$/);
+		if (gqsMatch) {
+			const params = gqsMatch[1];
+			this._queueSize = parseInt(params, 16)
+			return true;
+		}
+		return false;
 	}
 
 	/**
@@ -920,7 +1139,7 @@ export class SwiCCSink {
 		const trimmed = message.trim();
 
 		if (this._awaitingIdResponse) {
-			if (trimmed.startsWith('+')) {
+			if (trimmed.startsWith('+2w') || trimmed.startsWith('+Sw')) {
 				this._deviceId = trimmed.substring(1); // Remove the leading '+'
 				this._awaitingIdResponse = false;
 				this._awaitingVersionResponse = true;
@@ -940,6 +1159,9 @@ export class SwiCCSink {
 				if (versionMatch) {
 					this._deviceVersion = versionMatch[1];
 					this._awaitingVersionResponse = false;
+
+					// Pull the queue size
+					this.sendMessage("+GQS ");
 
 					// Interrogation complete
 					if (this._interrogationResolve) {
@@ -972,41 +1194,7 @@ export class SwiCCSink {
 		this._awaitingIdResponse = false;
 		this._awaitingVersionResponse = false;
 	}
-
-	/**
-	 * Handle rumble messages from the device.
-	 * @private
-	 * @param {string} message
-	 * @returns {boolean} true if this was a rumble message, false otherwise
-	 */
-	_handleRumbleMessage(message) {
-		const trimmed = message.trim();
-
-		// Check if this is a rumble message: "+RMBL ABCDEF"
-		const rumbleMatch = trimmed.match(/^\+RMBL\s+([0-9A-Fa-f]{6})$/);
-		if (rumbleMatch) {
-			const hexData = rumbleMatch[1];
-
-			// Extract the bytes: AB (ignored), CD (high freq), EF (low freq)
-			// CD is bytes 2-3 (characters 2-4)
-			const cdHex = hexData.substring(2, 4);
-			// EF is bytes 4-5 (characters 4-6)
-			const efHex = hexData.substring(4, 6);
-
-			// Convert hex strings to decimal values
-			this._rumbleLowFreq = parseInt(efHex, 16) / 12;
-			if (this._rumbleLowFreq > 1) this._rumbleLowFreq = 1;
-			this._rumbleHighFreq = parseInt(cdHex, 16) / 25;
-			if (this._rumbleHighFreq > 1) this._rumbleHighFreq = 1;
-			// Turn off rumble based on low freq
-			if (this._rumbleLowFreq == 0) this._rumbleHighFreq = 0;
-
-			return true; // This was a rumble message
-		}
-
-		return false; // This was not a rumble message
-	}
-
+	
 	getRumble() {
 		return {
 			rumbleHighFreq: this._rumbleHighFreq,
