@@ -167,7 +167,8 @@ export class UIManager {
 		this.elements.deviceId.textContent = deviceId;
 		this.elements.deviceVersion.textContent = version;
 		this.elements.queueSize.textContent = queueSize;
-		this.elements.queueRemaining.textContent = queueRemaining;
+		const usage = queueSize - queueRemaining;
+		this.elements.queueRemaining.textContent = usage < 5 ? "none" : usage;
 	}
 
 	/**
@@ -281,10 +282,8 @@ export class UIManager {
 	 * @param {boolean} state.hasMacroScript - Whether there's a valid macro script
 	 */
 	updatePlaybackButtons(state) {
-		const anyPlaybackActive = state.gamepadPassthroughActive || state.macroPlaybackActive;
-
 		this.elements.playMacroBtn.disabled = !state.isConnected || !state.hasMacroScript || state.macroPlaybackActive;
-		this.elements.stopPlaybackBtn.disabled = !anyPlaybackActive;
+		this.elements.stopPlaybackBtn.disabled = !state.macroPlaybackActive;
 	}
 
 	/**

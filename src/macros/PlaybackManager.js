@@ -144,36 +144,39 @@ export class PlaybackManager {
 	 * @returns {Promise<void>}
 	 */
 	async stopAllPlayback() {
-		// Clear all intervals
-		if (this.playbackInterval) {
-			clearInterval(this.playbackInterval);
-			this.playbackInterval = null;
-		}
+		if (this.macroPlaybackActive) {
+			// Stop macro playback
+			this.macroPlaybackActive = false;
 
-		if (this.queueCheckInterval) {
-			clearInterval(this.queueCheckInterval);
-			this.queueCheckInterval = null;
-		}
-
-		if (this.macroCompletionCheckInterval) {
-			clearInterval(this.macroCompletionCheckInterval);
-			this.macroCompletionCheckInterval = null;
-		}
-
-		// Exit buffer mode if it was active
-		if (this.bufferModeActive && this.swiccSink?.isConnected) {
-			try {
-				await this.swiccSink.sendMessage('+SPM RT ');
-				this.bufferModeActive = false;
-			} catch (error) {
-				this.logger(`Failed to exit buffer mode: ${error.message}`);
+			// Clear intervals
+			if (this.queueCheckInterval) {
+				clearInterval(this.queueCheckInterval);
+				this.queueCheckInterval = null;
 			}
-		}
 
-		this.gamepadPassthroughActive = false;
-		this.macroPlaybackActive = false;
-		this.triggerStatusChange('Stopped');
-		this.logger('Stopped all playback');
+			if (this.macroCompletionCheckInterval) {
+				clearInterval(this.macroCompletionCheckInterval);
+				this.macroCompletionCheckInterval = null;
+			}
+
+			// Resume realtime mode
+			if (this.swiccSink?.isConnected) {
+				try {
+					this.swiccSink.sendMessage('+SPM RT ');
+					this.bufferModeActive = false;
+				} catch (error) {
+					this.logger(`Failed to exit buffer mode: ${error.message}`);
+				}
+			}
+
+			// Resume gamepad passthrough
+			this.startGamepadPassthrough();
+			this.triggerStatusChange('Gamepad Passthrough Active');
+			this.logger('Resumed gamepad passthrough');
+
+			this.triggerMacroComplete();
+			this.logger('Stopped all playback');
+		}
 	}
 
 	/**
@@ -311,12 +314,15 @@ export class PlaybackManager {
 
 			// Resume realtime mode
 			if (this.bufferModeActive && this.swiccSink?.isConnected) {
-				try {
-					await this.swiccSink.sendMessage('+SPM RT ');
-					this.bufferModeActive = false;
-				} catch (error) {
-					this.logger(`Failed to exit buffer mode: ${error.message}`);
-				}
+				// Wait another half second for the queue to be fully consumed.
+				setTimeout(() => {
+					try {
+						this.swiccSink.sendMessage('+SPM RT ');
+						this.bufferModeActive = false;
+					} catch (error) {
+						this.logger(`Failed to exit buffer mode: ${error.message}`);
+					}
+				}, 500);
 			}
 
 			// Resume gamepad passthrough

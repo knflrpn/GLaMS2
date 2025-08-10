@@ -25,6 +25,7 @@ export class Engine {
 		// Core components
 		this.sources = new Map(); // name -> source
 		this.sinks = new Map();   // name -> sink
+		this.pausedSinks = new Set(); // Track paused sinks
 		this.rumbleEnabled = true;
 		this.pipeline = new ManipulatorPipeline();
 
@@ -126,6 +127,48 @@ export class Engine {
 	}
 
 	/**
+	 * Pause a sink (stop sending data to it)
+	 * @param {string} name - Sink name
+	 */
+	pauseSink(name) {
+		if (this.sinks.has(name)) {
+			this.pausedSinks.add(name);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Resume a sink (start sending data to it again)
+	 * @param {string} name - Sink name
+	 */
+	resumeSink(name) {
+		this.pausedSinks.delete(name);
+		return this.sinks.has(name);
+	}
+
+	/**
+	 * Toggle pause state for a sink
+	 * @param {string} name - Sink name
+	 */
+	toggleSinkPause(name) {
+		if (this.pausedSinks.has(name)) {
+			return this.resumeSink(name);
+		} else {
+			return this.pauseSink(name);
+		}
+	}
+
+	/**
+	 * Check if a sink is paused
+	 * @param {string} name - Sink name
+	 * @returns {boolean}
+	 */
+	isSinkPaused(name) {
+		return this.pausedSinks.has(name);
+	}
+
+	/**
 	 * Main processing loop.
 	 * @private
 	 */
@@ -150,6 +193,9 @@ export class Engine {
 
 		for (const [sinkName, sink] of this.sinks) {
 			try {
+				if (this.pausedSinks.has(sinkName)) {
+					continue;
+				}
 				// Check if sink supports rumble feedback
 				if (typeof sink.getRumble === 'function') {
 					const rumble = sink.getRumble();
@@ -218,6 +264,9 @@ export class Engine {
 				// Send to all sinks
 				for (const [sinkName, sink] of this.sinks) {
 					try {
+						if (this.pausedSinks.has(sinkName)) {
+							continue;
+						}
 						sink.send({ state: processedState });
 					} catch (err) {
 						console.error(`[Engine] Error sending to sink ${sinkName}:`, err);

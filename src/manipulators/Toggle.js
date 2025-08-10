@@ -373,7 +373,6 @@ export class Toggle extends BaseManipulator {
 			if (currentPressed && !buttonState.lastPressed) {
 				// Button was just pressed, toggle the state
 				buttonState.toggled = !buttonState.toggled;
-				this.log(`${buttonName} toggled ${buttonState.toggled ? 'ON' : 'OFF'}`);
 			}
 
 			// Update last pressed state for next frame

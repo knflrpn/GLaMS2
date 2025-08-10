@@ -37,6 +37,10 @@ export class UIManager {
 			messagesEnabled: document.getElementById('messagesEnabled'),
 
 			// Status elements
+			pauseBtn0: document.getElementById('pauseBtn0'),
+			pauseBtn1: document.getElementById('pauseBtn1'),
+			pauseBtn2: document.getElementById('pauseBtn2'),
+			pauseBtn3: document.getElementById('pauseBtn3'),
 			serialStatus: document.getElementById('serialStatus'),
 			gamepadName: document.getElementById('gamepadName'),
 			messageLog: document.getElementById('messageLog'),
@@ -224,20 +228,32 @@ export class UIManager {
 	 * @param {number} swiccId - SwiCC identifier (0-3)
 	 * @param {boolean} connected - Connection state
 	 */
-	updateSwiCCStatus(swiccId, connected) {
+	updateSwiCCStatus(swiccId, connected, paused = false) {
 		const connectBtn = document.getElementById(`connectBtn${swiccId}`);
 		const disconnectBtn = document.getElementById(`disconnectBtn${swiccId}`);
+		const pauseBtn = document.getElementById(`pauseBtn${swiccId}`);
 		const statusElement = document.getElementById(`swiccStatus${swiccId}`);
 
-		if (connectBtn && disconnectBtn && statusElement) {
+		if (connectBtn && disconnectBtn && pauseBtn && statusElement) {
 			if (connected) {
 				connectBtn.disabled = true;
 				disconnectBtn.disabled = false;
-				statusElement.textContent = 'Connected';
-				statusElement.className = 'connection-status connected';
+				pauseBtn.disabled = false;
+
+				if (paused) {
+					statusElement.textContent = 'Paused';
+					statusElement.className = 'connection-status paused';
+					pauseBtn.textContent = 'Resume';
+				} else {
+					statusElement.textContent = 'Connected';
+					statusElement.className = 'connection-status connected';
+					pauseBtn.textContent = 'Pause';
+				}
 			} else {
 				connectBtn.disabled = false;
 				disconnectBtn.disabled = true;
+				pauseBtn.disabled = true;
+				pauseBtn.textContent = 'Pause';
 				statusElement.textContent = 'Disconnected';
 				statusElement.className = 'connection-status disconnected';
 			}

@@ -11,6 +11,7 @@ export class ConnectionManager {
 		this.engine = engine;
 		this.uiManager = uiManager;
 		this.swiccSinks = new Map();
+		this.pausedConnections = new Set();
 
 		this.setupEventListeners();
 	}
@@ -91,6 +92,48 @@ export class ConnectionManager {
 	}
 
 	/**
+	 * Pause a SwiCC connection
+	 * @param {number} swiccId - SwiCC identifier (0-3)
+	 */
+	pauseSwiCC(swiccId) {
+		const sinkName = `swicc${swiccId}`;
+		if (this.swiccSinks.has(swiccId) && this.engine.pauseSink(sinkName)) {
+			this.pausedConnections.add(swiccId);
+			this.uiManager.updateSwiCCStatus(swiccId, true, true);
+			this.uiManager.logMessage(`SwiCC ${swiccId + 1} paused`);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Resume a SwiCC connection
+	 * @param {number} swiccId - SwiCC identifier (0-3)
+	 */
+	resumeSwiCC(swiccId) {
+		const sinkName = `swicc${swiccId}`;
+		if (this.swiccSinks.has(swiccId) && this.engine.resumeSink(sinkName)) {
+			this.pausedConnections.delete(swiccId);
+			this.uiManager.updateSwiCCStatus(swiccId, true, false);
+			this.uiManager.logMessage(`SwiCC ${swiccId + 1} resumed`);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Toggle pause state for a SwiCC connection
+	 * @param {number} swiccId - SwiCC identifier (0-3)
+	 */
+	togglePauseSwiCC(swiccId) {
+		if (this.pausedConnections.has(swiccId)) {
+			return this.resumeSwiCC(swiccId);
+		} else {
+			return this.pauseSwiCC(swiccId);
+		}
+	}
+
+	/**
 	 * Disconnect from a specific SwiCC device
 	 * @param {number} swiccId - SwiCC identifier (0-3)
 	 */
@@ -107,6 +150,7 @@ export class ConnectionManager {
 
 				// Remove from tracking
 				this.swiccSinks.delete(swiccId);
+				this.pausedConnections.delete(swiccId);
 			}
 
 			// Update UI
@@ -279,6 +323,11 @@ export class ConnectionManager {
 	initializeUI() {
 		for (let i = 0; i < 4; i++) {
 			this.updateConnectionStatus(i, false);
+		}
+		for (let i = 0; i < 4; i++) {
+			this.uiManager.addEventListenerSafe(`pauseBtn${i}`, 'click', () => {
+				this.togglePauseSwiCC(i);
+			});
 		}
 
 		// Initialize additional SwiCCs as hidden

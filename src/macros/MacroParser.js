@@ -125,20 +125,4 @@ export class MacroParser {
 		};
 	}
 
-	/**
-	 * Generate an example macro script.
-	 * @returns {string} Example macro script text
-	 */
-	static getExampleScript() {
-		return `{A} [0.0, 0.0, 0.0, 0.0]
-{} [0.0, 0.0, 0.0, 0.0]
-{} [0.0, 0.0, 0.0, 0.0]
-{B} [0.5, 0.0, 0.0, 0.0]
-{} [0.0, 0.0, 0.0, 0.0]
-{X Y} [-1.0, 1.0, 0.0, 0.0]
-{} [0.0, 0.0, 0.0, 0.0]
-{U L1} [0.0, 0.0, 0.5, -0.5]
-{} [0.0, 0.0, 0.0, 0.0]
-{+ -} [0.0, 0.0, 0.0, 0.0]`;
-	}
 }
