@@ -48,7 +48,6 @@ export class UIManager {
 			// Macro controls
 			macroScript: document.getElementById('macroScript'),
 			validateMacroBtn: document.getElementById('validateMacroBtn'),
-			loadExampleBtn: document.getElementById('loadExampleBtn'),
 			clearMacroBtn: document.getElementById('clearMacroBtn'),
 			macroLineCount: document.getElementById('macroLineCount'),
 			macroDuration: document.getElementById('macroDuration'),
@@ -80,8 +79,6 @@ export class UIManager {
 		// Macro events
 		this.elements.validateMacroBtn.addEventListener('click', () =>
 			this.triggerCallback('validateMacro'));
-		this.elements.loadExampleBtn.addEventListener('click', () =>
-			this.triggerCallback('loadExample'));
 		this.elements.clearMacroBtn.addEventListener('click', () =>
 			this.triggerCallback('clearMacro'));
 		this.elements.macroScript.addEventListener('input', () =>
