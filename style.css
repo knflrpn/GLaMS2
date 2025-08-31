@@ -561,7 +561,6 @@ body {
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	height: 30px;
 	background-color: #6c757d;
 	padding: 3px 10px;
 	border-radius: 10px;
@@ -606,6 +605,11 @@ body {
 	padding: 0;
 	display: flex;
 	justify-content: space-between;
+	gap: 1rem;
+}
+
+.manipulator-control-fillwidth {
+	width: 100%;
 }
 
 .manipulator-wrapper:hover {

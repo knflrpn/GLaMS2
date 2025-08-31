@@ -26,12 +26,12 @@ export class Shaker extends BaseManipulator {
 	}
 
 	static get displayName() {
-		return "Shaker";
+		return "IMU Shaker";
 	}
 
 	static get requiredSwiCC() {
 		return {
-			type: "2wiCC", // SwiCC or 2wiCC
+			type: "2wiCC",
 			firmware: "1.2",
 		};
 	}

@@ -60,6 +60,7 @@ export class ChatCommand extends BaseManipulator {
 		return {
 			channel: '',
 			maxMessages: 50,
+			maxDuration: 2000,
 			configName: '',
 			processInOrder: false
 		};
@@ -82,7 +83,7 @@ export class ChatCommand extends BaseManipulator {
 		this.maxMessages = params.maxMessages || 50;
 		this.configName = params.configName || 'default';
 		this.processInOrder = params.processInOrder || false;
-		this.maxDuration = 4000; // maximum duration that a command can run for
+		this.maxDuration = 2000; // maximum duration that a command can run for
 
 		// WebSocket connection
 		this.ws = null;
@@ -110,12 +111,14 @@ export class ChatCommand extends BaseManipulator {
 		this._channelInput = null;
 		this._connectButton = null;
 		this._statusIndicator = null;
+		this._maxDurationInput = null;
 		this._messageContainer = null;
 		this._clearButton = null;
 		this._configSelect = null;
 		this._configureButton = null;
 		this._processOrderCheckbox = null;
 		this._queueSizeDisplay = null;
+		this._manualMessageInput = null;
 
 		// Listen for config changes
 		this._configChangeHandler = (name) => {
@@ -225,6 +228,22 @@ export class ChatCommand extends BaseManipulator {
 				}
 			],
 			handler: (params) => this.setMaxMessages(params.max)
+		});
+
+		this.registerAction({
+			name: 'setMaxDuration',
+			displayName: 'Set Max Duration',
+			description: 'Set maximum duration for commands in milliseconds',
+			parameters: [
+				{
+					name: 'duration',
+					type: 'number',
+					description: 'Duration in milliseconds (50-5000)',
+					required: true,
+					default: 2000
+				}
+			],
+			handler: (params) => this.setMaxDuration(params.duration)
 		});
 
 		this.registerAction({
@@ -424,6 +443,20 @@ export class ChatCommand extends BaseManipulator {
 	}
 
 	/**
+	 * Set maximum duration that commands can play (50-5000ms)
+	 * @param {number} max_ms
+	 */
+	setMaxDuration(max_ms) {
+		this.maxDuration = Math.max(50, Math.min(5000, max_ms));
+		// Update UI input if it exists
+		if (this._maxDurationInput) {
+			this._maxDurationInput.value = this.maxDuration;
+		}
+		this.log(`Max command duration set to ${this.maxDuration}`);
+		return this.maxDuration;
+	}
+
+	/**
 	 * Handle incoming IRC messages
 	 * @param {string} rawMessage
 	 */
@@ -478,7 +511,7 @@ export class ChatCommand extends BaseManipulator {
 				}
 			}
 		}
-		
+
 		// Only process messages that contain keywords
 		if (foundKeywords.length > 0) {
 			const messageData = {
@@ -567,6 +600,18 @@ export class ChatCommand extends BaseManipulator {
 	}
 
 	/**
+	 * Fade a message after it completes
+	 * @param {number} messageId
+	 */
+	_fadeMessage(messageId) {
+		const messageData = this.displayedMessages.get(messageId);
+		if (messageData && messageData.element) {
+			messageData.element.classList.remove('handled');
+			messageData.element.classList.add('completed');
+		}
+	}
+
+	/**
 	 * Update the queue size display
 	 */
 	_updateQueueDisplay() {
@@ -651,11 +696,6 @@ export class ChatCommand extends BaseManipulator {
 			entry = this.commandQueue.splice(index, 1)[0];
 		}
 
-		// Highlight the selected message
-		if (entry && entry.id) {
-			this._highlightMessage(entry.id);
-		}
-
 		return entry;
 	}
 
@@ -681,7 +721,18 @@ export class ChatCommand extends BaseManipulator {
 			}
 		}
 
-		if (matchingCommands.length === 0) return;
+		if (matchingCommands.length === 0) {
+			// Nothing to do; cancel command
+			if (entry && entry.id) {
+				this._fadeMessage(entry.id);
+			}
+			return;
+		}
+
+		// Highlight the selected message
+		if (entry && entry.id) {
+			this._highlightMessage(entry.id);
+		}
 
 		// Check for exclusive commands
 		const exclusiveCommand = matchingCommands.find(cmd => cmd.exclusive);
@@ -699,6 +750,12 @@ export class ChatCommand extends BaseManipulator {
 
 		// Cap at max duration.
 		desiredDuration = Math.min(desiredDuration, this.maxDuration);
+		setTimeout(() => {
+			// Fade the selected message
+			if (entry && entry.id) {
+				this._fadeMessage(entry.id);
+			}
+		}, desiredDuration);
 
 		// Initialize state array (one state per 50ms frame)
 		const frameCount = Math.ceil(desiredDuration / 50);
@@ -911,12 +968,56 @@ export class ChatCommand extends BaseManipulator {
 		connectionDiv.appendChild(this._statusIndicator);
 		connectionDiv.appendChild(buttongrouper);
 
-		// Info box
-		const infobox = document.createElement('div');
-		infobox.className = 'info-box';
-		infobox.innerHTML = `
-			<p><strong>Note:</strong> Commands globally limited to ${this.maxDuration}ms.</p>
-		`;
+		// Max duration control
+		const maxDurationDiv = document.createElement('div');
+		maxDurationDiv.className = 'manipulator-control-group inline-with-gap';
+
+		const maxDurationLabel = document.createElement('label');
+		maxDurationLabel.textContent = 'Max command duration (ms): ';
+
+		this._maxDurationInput = document.createElement('input');
+		this._maxDurationInput.type = 'number';
+		this._maxDurationInput.min = '50';
+		this._maxDurationInput.max = '5000';
+		this._maxDurationInput.step = '50';
+		this._maxDurationInput.value = this.maxDuration;
+		this._maxDurationInput.className = 'max-duration-input';
+		this._maxDurationInput.addEventListener('change', () => {
+			const newValue = parseInt(this._maxDurationInput.value);
+			if (!isNaN(newValue)) {
+				this.executeAction('setMaxDuration', { duration: newValue });
+			} else {
+				this.executeAction('setMaxDuration', { duration: this.maxDuration });
+			}
+		});
+
+		maxDurationDiv.appendChild(maxDurationLabel);
+		maxDurationDiv.appendChild(this._maxDurationInput);
+
+		// Manual message injection
+		const manualInputDiv = document.createElement('div');
+		manualInputDiv.className = 'manipulator-control-group inline-with-gap';
+
+		const manualLabel = document.createElement('label');
+		manualLabel.textContent = 'Manual message injection: ';
+
+		this._manualMessageInput = document.createElement('input');
+		this._manualMessageInput.type = 'text';
+		this._manualMessageInput.placeholder = 'then press enter...';
+		this._manualMessageInput.className = 'manual-message-input';
+		this._manualMessageInput.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') {
+				const message = this._manualMessageInput.value.trim();
+				if (message) {
+					this._processMessage('manual', message);
+					this._manualMessageInput.value = '';
+				}
+			}
+		});
+
+		manualInputDiv.appendChild(manualLabel);
+		manualInputDiv.appendChild(this._manualMessageInput);
+
 		// Queue status
 		const queueDiv = document.createElement('div');
 		queueDiv.className = 'manipulator-control-group';
@@ -966,7 +1067,8 @@ export class ChatCommand extends BaseManipulator {
 
 		// Assemble UI
 		container.appendChild(connectionDiv);
-		container.appendChild(infobox);
+		container.appendChild(maxDurationDiv);
+		container.appendChild(manualInputDiv);
 		container.appendChild(queueDiv);
 		container.appendChild(messageDiv);
 
@@ -1025,6 +1127,11 @@ export class ChatCommand extends BaseManipulator {
 				border-left-color: #00ff00;
 				animation: highlight 0.5s ease-out;
 			}
+			.chat-message.completed {
+				background: rgba(128, 128, 128, 0.2);
+				border-left-color: #929292ff;
+				animation: highlight 0.5s ease-out;
+			}
 			@keyframes highlight {
 				0% {
 					background: rgba(0, 255, 0, 0.5);
@@ -1058,6 +1165,7 @@ export class ChatCommand extends BaseManipulator {
 		return {
 			channel: this.channel,
 			maxMessages: this.maxMessages,
+			maxDuration: this.maxDuration,
 			configName: this.configName,
 			processInOrder: this.processInOrder
 		};
@@ -1073,6 +1181,10 @@ export class ChatCommand extends BaseManipulator {
 
 		if (config.maxMessages !== undefined) {
 			this.setMaxMessages(config.maxMessages);
+		}
+
+		if (config.maxDuration !== undefined) {
+			this.setMaxDuration(config.maxDuration);
 		}
 
 		if (config.configName !== undefined) {
@@ -1118,11 +1230,13 @@ export class ChatCommand extends BaseManipulator {
 		this._channelInput = null;
 		this._connectButton = null;
 		this._statusIndicator = null;
+		this._maxDurationInput = null;
 		this._messageContainer = null;
 		this._clearButton = null;
 		this._configSelect = null;
 		this._configureButton = null;
 		this._processOrderCheckbox = null;
 		this._queueSizeDisplay = null;
+		this._manualMessageInput = null;
 	}
 }

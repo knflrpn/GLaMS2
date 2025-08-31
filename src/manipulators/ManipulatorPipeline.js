@@ -19,6 +19,7 @@ import { MouseMotion } from './MouseMotion.js';
 import { KeyboardControl } from './KeyboardControl.js';
 import { Sticky } from './Sticky.js';
 import { Toggle } from './Toggle.js';
+import { AnalogScale } from './AnalogScale.js';
 
 /**
  * @typedef {Object} BroadcastConfig
@@ -49,6 +50,7 @@ export class ManipulatorPipeline {
 		KeyboardControl,
 		Sticky,
 		Toggle,
+		AnalogScale,
 		// Add more manipulator types here as needed
 	];
 

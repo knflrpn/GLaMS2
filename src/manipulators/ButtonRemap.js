@@ -436,6 +436,12 @@ export class ButtonRemap extends BaseManipulator {
 			}
 		});
 
+		// Copy +, -, home, c
+		newState.digital.buttonMinus = state.digital.buttonMinus;
+		newState.digital.buttonPlus = state.digital.buttonPlus;
+		newState.digital.buttonHome = state.digital.buttonHome;
+		newState.digital.buttonCapture = state.digital.buttonCapture;
+
 		return newState;
 	}
 

@@ -67,7 +67,7 @@ export class KeyboardControl extends BaseManipulator {
 		this.captureEvents = params.captureEvents !== false;
 
 		// Track currently pressed keys
-		this.pressedKeys = new Set();
+		this.keyStates = new Map();
 
 		// Keyboard event handlers
 		this._onKeyDown = this._handleKeyDown.bind(this);
@@ -162,13 +162,6 @@ export class KeyboardControl extends BaseManipulator {
 			description: 'Get all current key mappings',
 			handler: () => this.getKeyMappings()
 		});
-
-		this.registerAction({
-			name: 'getPressedKeys',
-			displayName: 'Get Pressed Keys',
-			description: 'Get currently pressed keys',
-			handler: () => this.getPressedKeys()
-		});
 	}
 
 	/**
@@ -213,7 +206,7 @@ export class KeyboardControl extends BaseManipulator {
 	 */
 	clearAllMappings() {
 		this.keyMappings.clear();
-		this.pressedKeys.clear();
+		this.keyStates.clear();
 		this._updateMappingUI();
 		this.log('Cleared all key mappings');
 		return true;
@@ -273,13 +266,6 @@ export class KeyboardControl extends BaseManipulator {
 	}
 
 	/**
-	 * Get currently pressed keys
-	 */
-	getPressedKeys() {
-		return Array.from(this.pressedKeys);
-	}
-
-	/**
 	 * Start listening for keyboard events
 	 * @private
 	 */
@@ -303,64 +289,86 @@ export class KeyboardControl extends BaseManipulator {
 		window.removeEventListener('blur', this._onBlur);
 
 		// Clear pressed keys when stopping
-		this.pressedKeys.clear();
+		this.keyStates.clear();
 
 		this.log('Stopped keyboard listening');
 	}
 
-	/**
-	 * Handle keydown events
-	 * @private
-	 */
-	_handleKeyDown(event) {
-		if (!this.enabled || !this.captureEvents) return;
-
-		const key = event.code;
-		if (this.keyMappings.has(key)) {
-			this.pressedKeys.add(key);
-
-			// Prevent default behavior for mapped keys
-			event.preventDefault();
-			event.stopPropagation();
-		}
-	}
-
-	/**
-	 * Handle keyup events
-	 * @private
-	 */
-	_handleKeyUp(event) {
-		if (!this.enabled || !this.captureEvents) return;
-
-		const key = event.code;
-		if (this.keyMappings.has(key)) {
-			this.pressedKeys.delete(key);
-
-			// Prevent default behavior for mapped keys
-			event.preventDefault();
-			event.stopPropagation();
-		}
-	}
+    /**
+     * Handle keydown events
+     * @private
+     */
+    _handleKeyDown(event) {
+        if (!this.enabled || !this.captureEvents) return;
+    
+        const key = event.code;
+        if (this.keyMappings.has(key)) {
+            // Set to pressed state (overwrites any previous state)
+            this.keyStates.set(key, 'pressed');
+    
+            // Prevent default behavior for mapped keys
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
+    
+    /**
+     * Handle keyup events
+     * @private
+     */
+    _handleKeyUp(event) {
+        if (!this.enabled || !this.captureEvents) return;
+    
+        const key = event.code;
+        if (this.keyMappings.has(key)) {
+            const currentState = this.keyStates.get(key);
+            
+            if (currentState === 'processed') {
+                // Key has already caused a button press, safe to delete immediately
+                this.keyStates.delete(key);
+            } else if (currentState === 'pressed') {
+                // Key hasn't been processed yet, mark for pending deletion
+                this.keyStates.set(key, 'pendingDeletion');
+            }
+            // If currentState is undefined or 'pendingDeletion', no action needed
+    
+            // Prevent default behavior for mapped keys
+            event.preventDefault();
+            event.stopPropagation();
+        }
+    }
 
 	/**
 	 * Handle window blur (clear all pressed keys)
 	 * @private
 	 */
-	_handleBlur() {
-		this.pressedKeys.clear();
-	}
+    _handleBlur() {
+        this.keyStates.clear();
+    }
 
-	_processInternal(state, deltaTime) {
-		// Apply keyboard mappings
-		this.pressedKeys.forEach(key => {
-			const button = this.keyMappings.get(key);
-			if (button) {
-				state.digital[button] = true;
-			}
-		});
-
-		return state;
-	}
+    _processInternal(state, deltaTime) {
+        // Process all keys and update their states
+        for (const [key, keyState] of this.keyStates) {
+            const button = this.keyMappings.get(key);
+            if (!button) continue;
+    
+            if (keyState === 'pressed') {
+                // Normal pressed key - activate and mark as processed
+                state.digital[button] = true;
+                this.keyStates.set(key, 'processed');
+            } else if (keyState === 'pendingDeletion') {
+                // Key pending deletion - give it one final frame then remove
+                state.digital[button] = true;
+                this.keyStates.delete(key);
+            }
+            // 'processed' keys that are still held don't need state changes
+            else if (keyState === 'processed') {
+                state.digital[button] = true;
+            }
+        }
+    
+        return state;
+    }
 
 	/**
 	 * Update the mapping UI display
@@ -798,12 +806,13 @@ export class KeyboardControl extends BaseManipulator {
 		this._stopListening();
 	}
 
-	dispose() {
-		this._stopListening();
-		this.pressedKeys.clear();
-		this.keyMappings.clear();
-		this._mappingContainer = null;
-		this._captureCheckbox = null;
-		super.dispose();
-	}
+    dispose() {
+        this._stopListening();
+        this.keyStates.clear();
+        this.keyMappings.clear();
+        this._mappingContainer = null;
+        this._captureCheckbox = null;
+        super.dispose();
+    }
+    
 }
