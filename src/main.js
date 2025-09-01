@@ -23,6 +23,8 @@ class SwiCCApplication {
 		this.engine = null;
 		this.pipeline = null;
 		this.gamepadSource = null;
+		this.currentGamepadIndex = -1;
+		this.gamepadExists = false;
 		this.messageHandler = null;
 
 		// Managers
@@ -69,13 +71,17 @@ class SwiCCApplication {
 		// Create message handler
 		this.messageHandler = new ActionMessageHandler(this.pipeline);
 
-		// Add static gamepad source
-		this.gamepadSource = new GamepadSource(0);
-		this.engine.addSource('gamepad0', this.gamepadSource);
+		// Add gamepad source and watch for changes
+		const selector = document.getElementById('gamepadSelector');
+		selector.addEventListener('change', (event) => {
+			const selectedIndex = parseInt(event.target.value);
+			this.switchGamepadIndex(selectedIndex);
+		});
+		this.switchGamepadIndex(0);
 
 		this.managers.ui?.logMessage('Core components created');
 	}
-
+	
 	/**
 	 * Create all managers
 	 */
@@ -200,13 +206,37 @@ class SwiCCApplication {
 	}
 
 	/**
+	 * Switch to a different gamepad index
+	 * @param {number} newIndex - New gamepad index (0-3)
+	 */
+	switchGamepadIndex(newIndex) {
+		if (newIndex === this.currentGamepadIndex) return;
+
+		// Remove old gamepad source
+		this.engine.removeSource('gamepad');
+
+		// Create new gamepad source with new index
+		this.gamepadSource = new GamepadSource(newIndex);
+		this.engine.addSource('gamepad', this.gamepadSource);
+
+		// Update tracking
+		this.currentGamepadIndex = newIndex;
+
+		// Reset gamepad cache
+		this.resetGamepadCache();
+
+		this.managers.ui?.logMessage(`Now using Controller #${newIndex + 1}`);
+	}
+	
+	/**
 	 * Update gamepad status with caching for performance
 	 */
 	updateGamepadStatus() {
 		const gamepads = navigator.getGamepads();
-		const gamepad = gamepads[0];
+		const gamepad = gamepads[this.currentGamepadIndex];
 
 		if (gamepad) {
+			this.gamepadExists = true;
 			const gamepadData = this.processGamepadData(gamepad);
 
 			// Only update UI if data has changed
@@ -215,9 +245,12 @@ class SwiCCApplication {
 				this.updateGamepadCache(gamepadData);
 			}
 		} else {
+			if (this.gamepadExists) {
+				this.managers.ui.updateGamepadStatus({ connected: false });
+				this.gamepadExists = false;
+			}
 			// Handle disconnection
 			if (this.gamepadCache.connected) {
-				this.managers.ui.updateGamepadStatus({ connected: false });
 				this.resetGamepadCache();
 			}
 		}

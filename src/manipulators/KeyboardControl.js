@@ -175,7 +175,7 @@ export class KeyboardControl extends BaseManipulator {
 			'buttonA', 'buttonB', 'buttonX', 'buttonY',
 			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
 			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
-			'buttonThumbL', 'buttonThumbR'
+			'buttonThumbL', 'buttonThumbR', 'buttonCapture'
 		];
 
 		if (!validButtons.includes(button)) {
@@ -472,7 +472,8 @@ export class KeyboardControl extends BaseManipulator {
 			'buttonZL': 'ZL',
 			'buttonZR': 'ZR',
 			'buttonThumbL': 'L3',
-			'buttonThumbR': 'R3'
+			'buttonThumbR': 'R3',
+			'buttonCapture': 'c'
 		};
 
 		return buttonNames[button] || button;
@@ -557,7 +558,8 @@ export class KeyboardControl extends BaseManipulator {
 			{ value: 'buttonZL', text: 'ZL (Left Trigger)' },
 			{ value: 'buttonZR', text: 'ZR (Right Trigger)' },
 			{ value: 'buttonThumbL', text: 'L3 (Left Stick)' },
-			{ value: 'buttonThumbR', text: 'R3 (Right Stick)' }
+			{ value: 'buttonThumbR', text: 'R3 (Right Stick)' },
+			{ value: 'buttonCapture', text: 'c' }
 		];
 
 		buttonOptions.forEach(option => {

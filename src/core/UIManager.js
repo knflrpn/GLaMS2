@@ -155,7 +155,7 @@ export class UIManager {
 			this.updateButtonStates(gamepadData.buttons);
 			this.updateStickPositions(gamepadData.axes);
 		} else {
-			this.elements.gamepadName.textContent = 'No gamepad detected';
+			this.elements.gamepadName.textContent = 'No gamepad detected. Try pressing a button.';
 			this.clearButtonStates();
 			this.clearStickPositions();
 		}
