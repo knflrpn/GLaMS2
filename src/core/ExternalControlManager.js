@@ -149,6 +149,18 @@ export class ExternalControlManager {
 			return this.handleMoveManipulator(data);
 		});
 
+		this.registerMessageHandler('clearPipeline', (data) => {
+			return this.handleClearPipeline(data);
+		}); 
+
+		this.registerMessageHandler('resetManipulatorConfigs', (data) => {
+			return this.handleResetManipulatorConfigs(data);
+		});
+
+		this.registerMessageHandler('disableManipulators', (data) => {
+			return this.handleDisableManipulators(data);
+		});
+
 		this.registerMessageHandler('loadPipelineConfig', (data) => {
 			return this.handleLoadPipelineConfig(data);
 		});
@@ -871,6 +883,87 @@ export class ExternalControlManager {
 
 		} catch (error) {
 			this.uiManager.logMessage(`Failed to move manipulator: ${error.message}`);
+			throw error;
+		}
+	}
+
+	/**
+	 * Handle resetting cinfigs
+	 * @param {Object} data - Configuration data
+	 * @returns {Object} Result
+	 */
+	handleResetManipulatorConfigs(data) {
+		const { config } = data;
+
+		if (!this.pipelineManager) {
+			throw new Error('Pipeline manager not available');
+		}
+
+		try {
+			this.pipelineManager.resetConfigs();
+
+			this.uiManager.logMessage(`External request: reset manipulator configs`);
+
+			return {
+				success: true,
+			};
+
+		} catch (error) {
+			this.uiManager.logMessage(`Failed to reset manipulator configs`);
+			throw error;
+		}
+	}
+
+	/**
+	 * Handle resetting cinfigs
+	 * @param {Object} data - Configuration data
+	 * @returns {Object} Result
+	 */
+	handleDisableManipulators(data) {
+		const { config } = data;
+
+		if (!this.pipelineManager) {
+			throw new Error('Pipeline manager not available');
+		}
+
+		try {
+			this.pipelineManager.disableAllManipulators();
+
+			this.uiManager.logMessage(`External request: disable all manipulators`);
+
+			return {
+				success: true,
+			};
+
+		} catch (error) {
+			this.uiManager.logMessage(`Failed to disable manipulators`);
+			throw error;
+		}
+	}
+
+	/**
+	 * Handle load pipeline config message
+	 * @param {Object} data - Configuration data
+	 * @returns {Object} Result
+	 */
+	handleClearPipeline(data) {
+		const { config } = data;
+
+		if (!this.pipelineManager) {
+			throw new Error('Pipeline manager not available');
+		}
+
+		try {
+			this.pipelineManager.clearPipeline();
+
+			this.uiManager.logMessage(`External request: cleared pipeline`);
+
+			return {
+				success: true,
+			};
+
+		} catch (error) {
+			this.uiManager.logMessage(`Failed to clear pipeline`);
 			throw error;
 		}
 	}

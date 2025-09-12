@@ -241,7 +241,7 @@ export class InputDelay extends BaseManipulator {
 			return this.lastOutputState;
 		} else {
 			// Only return neutral state if we've never had a valid output
-			const neutralState = this.copyState(state);
+			const neutralState = state.clone();
 			
 			// Clear all digital inputs
 			Object.keys(neutralState.digital).forEach(key => {

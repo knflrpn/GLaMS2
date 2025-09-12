@@ -18,7 +18,50 @@ import { BaseManipulator } from './BaseManipulator.js';
 export class ButtonRemap extends BaseManipulator {
 	static get defaultConfig() {
 		return {
-			mappings: {}
+			"mappings": {
+				"buttonA": [
+					"buttonA"
+				],
+				"buttonB": [
+					"buttonB"
+				],
+				"buttonX": [
+					"buttonX"
+				],
+				"buttonY": [
+					"buttonY"
+				],
+				"dpadUp": [
+					"dpadUp"
+				],
+				"dpadDown": [
+					"dpadDown"
+				],
+				"dpadLeft": [
+					"dpadLeft"
+				],
+				"dpadRight": [
+					"dpadRight"
+				],
+				"buttonL": [
+					"buttonL"
+				],
+				"buttonR": [
+					"buttonR"
+				],
+				"buttonZL": [
+					"buttonZL"
+				],
+				"buttonZR": [
+					"buttonZR"
+				],
+				"buttonThumbL": [
+					"buttonThumbL"
+				],
+				"buttonThumbR": [
+					"buttonThumbR"
+				]
+			},
 		};
 	}
 	static get displayName() {
@@ -36,30 +79,9 @@ export class ButtonRemap extends BaseManipulator {
 		super(params);
 
 		// Define the button order for the grid
-		this.buttons = [
-			'buttonA', 'buttonB', 'buttonX', 'buttonY',
-			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
-			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
-			'buttonThumbL', 'buttonThumbR'
-		];
-
+		this.buttons = BaseManipulator.STANDARD_BUTTONS;
 		// Button display names for the UI
-		this.buttonDisplayNames = {
-			'buttonA': 'A',
-			'buttonB': 'B',
-			'buttonX': 'X',
-			'buttonY': 'Y',
-			'dpadUp': '↑',
-			'dpadDown': '↓',
-			'dpadLeft': '←',
-			'dpadRight': '→',
-			'buttonL': 'L',
-			'buttonR': 'R',
-			'buttonZL': 'ZL',
-			'buttonZR': 'ZR',
-			'buttonThumbL': 'L3',
-			'buttonThumbR': 'R3'
-		};
+		this.buttonDisplayNames = BaseManipulator.BUTTON_DISPLAY_NAMES;
 
 		// Initialize mappings from params
 		this.mappings = new Map();
@@ -437,10 +459,9 @@ export class ButtonRemap extends BaseManipulator {
 		});
 
 		// Copy +, -, home, c
-		newState.digital.buttonMinus = state.digital.buttonMinus;
-		newState.digital.buttonPlus = state.digital.buttonPlus;
-		newState.digital.buttonHome = state.digital.buttonHome;
-		newState.digital.buttonCapture = state.digital.buttonCapture;
+		BaseManipulator.SYSTEM_BUTTONS.forEach(button => {
+			newState.digital[button] = state.digital[button];
+		});
 
 		return newState;
 	}

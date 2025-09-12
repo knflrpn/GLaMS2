@@ -216,8 +216,8 @@ export class A2D extends BaseManipulator {
 			// Convert to D-Pad based on threshold
 			state.digital.dpadLeft = lx < -this.threshold;
 			state.digital.dpadRight = lx > this.threshold;
-			state.digital.dpadUp = ly > -this.threshold;
-			state.digital.dpadDown = ly < this.threshold;
+			state.digital.dpadUp = ly < -this.threshold;
+			state.digital.dpadDown = ly > this.threshold;
 
 			// Optionally neutralize analog
 			if (!this.passLeftAnalog) {

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>GLaMS Roulette Wheel (Canvas)</title>
+	<style>
+		:root {
+			--bg1: #0f0f23;
+			--bg2: #1a1a2e;
+			--bg3: #16213e;
+			--glass: rgba(255, 255, 255, 0.08);
+			--glassBorder: rgba(255, 255, 255, 0.18);
+			--accent: #8ab4ff;
+			--good: #22c55e;
+			--bad: #ef4444;
+		}
+
+		* {
+			box-sizing: border-box
+		}
+
+		body {
+			margin: 0;
+			font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial;
+			background: black;
+			color: #fff;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+
+		.stage {
+			display: grid;
+			grid-template-columns: 1fr;
+			grid-template-rows: auto auto auto auto;
+			gap: 20px;
+			width: min(92vw, 900px);
+			align-items: center;
+			justify-items: center;
+		}
+
+		.hud {
+			position: fixed;
+			top: 16px;
+			right: 16px;
+			background: var(--glass);
+			backdrop-filter: blur(10px);
+			border: 1px solid var(--glassBorder);
+			border-radius: 14px;
+			padding: 12px 14px;
+			font-size: 14px;
+			box-shadow: 0 8px 30px rgba(0, 0, 0, .35);
+		}
+
+		.conn {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+			margin-bottom: 8px
+		}
+
+		.dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 50%;
+			background: var(--bad);
+			box-shadow: 0 0 10px rgba(239, 68, 68, .5)
+		}
+
+		.dot.connected {
+			background: var(--good);
+			box-shadow: 0 0 10px rgba(34, 197, 94, .6)
+		}
+
+		.segCount {
+			opacity: .85
+		}
+
+		.config-section {
+			width: 100%;
+			background: var(--glass);
+			border: 1px solid var(--glassBorder);
+			border-radius: 16px;
+			padding: 20px;
+			box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+		}
+
+		.config-section h3 {
+			margin: 0 0 12px 0;
+			font-size: 18px;
+			color: var(--accent);
+		}
+
+		.config-textarea {
+			width: 100%;
+			min-height: 200px;
+			background: rgba(0, 0, 0, 0.3);
+			border: 1px solid var(--glassBorder);
+			border-radius: 8px;
+			padding: 12px;
+			color: #fff;
+			font-family: 'Courier New', monospace;
+			font-size: 12px;
+			resize: vertical;
+			margin-bottom: 12px;
+		}
+
+		.config-textarea:focus {
+			outline: none;
+			border-color: var(--accent);
+			box-shadow: 0 0 0 2px rgba(138, 180, 255, 0.2);
+		}
+
+		.config-controls {
+			display: flex;
+			gap: 12px;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+
+		.config-status {
+			flex: 1;
+			font-size: 14px;
+			opacity: 0.8;
+		}
+
+		.config-status.error {
+			color: var(--bad);
+		}
+
+		.config-status.success {
+			color: var(--good);
+		}
+
+		.board {
+			position: relative;
+			width: min(88vw, 680px);
+			aspect-ratio: 1/1;
+			display: grid;
+			place-items: center;
+			border-radius: 24px;
+		}
+
+		canvas {
+			width: 100%;
+			height: 100%;
+			filter: drop-shadow(0 18px 55px rgba(0, 0, 0, .55));
+		}
+
+		.pointer {
+			position: absolute;
+			left: 12px;
+			top: 50%;
+			transform: translateY(-50%);
+			width: 0;
+			height: 0;
+			z-index: 10;
+			border-top: 18px solid transparent;
+			border-bottom: 18px solid transparent;
+			border-left: 38px solid #ffd166;
+			filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .5));
+		}
+
+		.hub {
+			position: absolute;
+			inset: 0;
+			display: grid;
+			place-items: center;
+			pointer-events: none;
+		}
+
+		.hub::after {
+			content: "";
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			background: conic-gradient(from 0deg, #6ee7b7, #60a5fa, #a78bfa, #f472b6, #f59e0b, #6ee7b7);
+			padding: 4px;
+			display: block;
+			filter: blur(.25px);
+		}
+
+		.hub>div {
+			position: absolute;
+			width: 30px;
+			height: 30px;
+			border-radius: 50%;
+			background: linear-gradient(120deg, #121a2b, #0e1220);
+			border: 3px solid rgba(255, 255, 255, .7);
+			box-shadow: inset 0 6px 18px rgba(0, 0, 0, .6), 0 6px 18px rgba(0, 0, 0, .4);
+		}
+
+		.panel {
+			display: flex;
+			gap: 16px;
+			align-items: stretch;
+			justify-content: center;
+			flex-wrap: wrap;
+			width: min(92vw, 900px);
+		}
+
+		.card {
+			flex: 1 1 260px;
+			min-height: 92px;
+			background: var(--glass);
+			border: 1px solid var(--glassBorder);
+			border-radius: 16px;
+			padding: 16px 18px;
+			box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+		}
+
+		.card h3 {
+			margin: 0 0 6px 0;
+			font-size: 16px;
+			opacity: .9
+		}
+
+		.big {
+			font-size: 22px;
+			font-weight: 800;
+			color: var(--accent);
+			text-shadow: 0 2px 8px rgba(138, 180, 255, .25)
+		}
+
+		.controls {
+			display: flex;
+			gap: 14px;
+			align-items: center;
+			justify-content: center;
+			flex-wrap: wrap
+		}
+
+		button.btn {
+			appearance: none;
+			border: none;
+			cursor: pointer;
+			font-weight: 700;
+			letter-spacing: .2px;
+			padding: 14px 22px;
+			border-radius: 14px;
+			min-width: 140px;
+			font-size: 16px;
+			background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+			color: #fff;
+			box-shadow: 0 14px 38px rgba(99, 102, 241, .35);
+			transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+		}
+
+		button.btn:hover:not(:disabled) {
+			transform: translateY(-2px);
+			box-shadow: 0 20px 50px rgba(99, 102, 241, .45);
+		}
+
+		button.btn:disabled {
+			opacity: .5;
+			cursor: not-allowed
+		}
+
+		.btn.secondary {
+			background: linear-gradient(135deg, #64748b, #475569);
+			box-shadow: 0 14px 38px rgba(100, 116, 139, 0.35);
+		}
+
+		.btn.secondary:hover:not(:disabled) {
+			box-shadow: 0 20px 50px rgba(100, 116, 139, 0.45);
+		}
+
+		.noSeg {
+			text-align: center;
+			opacity: .7
+		}
+	</style>
+</head>
+
+<body>
+	<!-- Default segments config (will be loaded into textarea on first load) -->
+	<script type="application/json" id="default-segments-config">
+{
+  "segments": [
+    {
+      "displayName": "nothing",
+      "actions": [
+      ]
+    }
+  ],
+  "created": "2025-09-07T19:28:14.265Z",
+  "version": "1.0"
+}
+  </script>
+
+	<!--
+    <div class="hud">
+    <div class="conn"><span class="dot" id="connDot"></span><span id="connText">Disconnected</span></div>
+    <div class="segCount" id="segCount">0 segments loaded</div>
+  </div>
+-->
+
+	<div class="stage">
+		<div class="board">
+			<canvas id="wheelCanvas"></canvas>
+			<div class="pointer"></div>
+			<div class="hub">
+				<div></div>
+			</div>
+		</div>
+
+		<div class="panel">
+			<div class="card">
+				<h3>Current Selection</h3>
+				<div class="big" id="currentName">None</div>
+			</div>
+			<div class="card controls">
+				<button class="btn" id="spinBtn" disabled>Spin Wheel</button>
+				<button class="btn" id="executeBtn" disabled>Execute Actions</button>
+				<button class="btn" id="stopBtn">Stop Actions</button>
+				<button class="btn" id="removeBtn" disabled>Remove Option</button>
+			</div>
+		</div>
+
+		<div class="noSeg" id="noSeg" style="display:none">No segments configured</div>
+
+		<div class="config-section">
+			<h3>Configuration</h3>
+			<textarea id="configTextarea" class="config-textarea"
+				placeholder="Enter JSON configuration here..."></textarea>
+			<div class="config-controls">
+				<button class="btn secondary" id="loadConfigBtn">Load Configuration</button>
+				<div class="config-status" id="configStatus">Ready</div>
+			</div>
+		</div>
+
+	</div>
+
+	<script type="module" src="./glams-roulette-common.js"></script>
+	<script type="module" src="./roulette.js"></script>
+</body>
+
+</html>

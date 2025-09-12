@@ -337,6 +337,17 @@ export class PipelineManager {
 	}
 
 	/**
+	 * Reset all manipulators to their default configuration
+	 */
+	resetConfigs() {
+		try {
+			this.pipeline.getManipulators().forEach((manipulator) => manipulator.resetConfig());
+		} catch (error) {
+			this.uiManager.logMessage(`Error resetting configs: ${error.message}`);
+		}
+	}
+
+	/**
 	 * Execute an action on a specific manipulator
 	 * @param {string} manipulatorId - Manipulator ID
 	 * @param {string} actionName - Action name to execute
@@ -487,18 +498,28 @@ export class PipelineManager {
 	}
 
 	/**
-	 * Enable or disable a manipulator
-	 * @param {Object} manipulator - Manipulator instance
-	 * @param {boolean} enabled - Whether to enable the manipulator
+	 * Disable all manipulators in the pipeline
+	 * @returns {number} Number of manipulators that were disabled
 	 */
-	setManipulatorEnabled(manipulator, enabled) {
+	disableAllManipulators() {
 		try {
-			if (manipulator.setEnabled) {
-				manipulator.setEnabled(enabled);
-				this.uiManager.logMessage(`${manipulator.constructor.displayName} ${enabled ? 'enabled' : 'disabled'}`);
-			}
+			const manipulators = this.pipeline.getManipulators();
+			let disabledCount = 0;
+
+			manipulators.forEach(manipulator => {
+				manipulator.disable();
+			});
+
+			this.uiManager.logMessage(`Disabled all manipulator(s)`);
+
+			// Trigger pipeline change event since the state has changed
+			this.onPipelineChanged();
+
+			return disabledCount;
+
 		} catch (error) {
-			this.uiManager.logMessage(`Error setting manipulator enabled state: ${error.message}`);
+			this.uiManager.logMessage(`Error disabling all manipulators: ${error.message}`);
+			return 0;
 		}
 	}
 

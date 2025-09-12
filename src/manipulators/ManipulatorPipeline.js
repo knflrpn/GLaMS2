@@ -13,10 +13,12 @@ import { InputDelay } from './InputDelay.js';
 import { A2D } from './A2D.js';
 import { D2A } from './D2A.js';
 import { ChatCommand } from './ChatCommand.js';
+import { StringControl } from './StringControl.js';
 import { MouseControl } from './MouseControl.js';
 import { Shaker } from './Shaker.js';
 import { MouseMotion } from './MouseMotion.js';
-import { KeyboardControl } from './KeyboardControl.js';
+import { KeyboardButtons } from './KeyboardButtons.js';
+import { KeyboardSticks } from './KeyboardSticks.js';
 import { Sticky } from './Sticky.js';
 import { Toggle } from './Toggle.js';
 import { AnalogScale } from './AnalogScale.js';
@@ -44,13 +46,15 @@ export class ManipulatorPipeline {
 		A2D,
 		D2A,
 		ChatCommand,
+		StringControl,
 		MouseControl,
-		Shaker,
-		MouseMotion,
-		KeyboardControl,
+		KeyboardButtons,
+		KeyboardSticks,
 		Sticky,
 		Toggle,
 		AnalogScale,
+		Shaker,
+		MouseMotion,
 		// Add more manipulator types here as needed
 	];
 

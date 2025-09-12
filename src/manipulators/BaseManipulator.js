@@ -141,6 +141,13 @@ export class BaseManipulator {
 			],
 			handler: (params) => this.setConfig(params.config)
 		});
+
+		this.registerAction({
+			name: 'resetConfig',
+			displayName: 'Reset to Defaults',
+			description: 'Reset this manipulator to its default configuration',
+			handler: () => this.resetConfig()
+		});
 	}
 
 	/**
@@ -252,28 +259,6 @@ export class BaseManipulator {
 	 */
 	_processInternal(state, deltaTime) {
 		throw new Error('Subclasses must implement _processInternal()');
-	}
-
-	/**
-	 * Create a deep copy of the controller state.
-	 * Utility method for manipulators that need to copy state.
-	 * 
-	 * @param {import('../core/ControllerState.js').ControllerState} state
-	 * @returns {import('../core/ControllerState.js').ControllerState}
-	 */
-	copyState(state) {
-		const newState = new (state.constructor)();
-
-		// Copy digital buttons
-		Object.assign(newState.digital, state.digital);
-
-		// Copy analog inputs
-		Object.assign(newState.analog, state.analog);
-
-		// Copy IMU samples
-		Object.assign(newState.imuSample, state.imuSample);
-
-		return newState;
 	}
 
 	/**
@@ -465,6 +450,179 @@ export class BaseManipulator {
 	 */
 	_setSpecificConfig(config) {
 		// Override in subclasses
+	}
+
+	/**
+	 * Reset this manipulator to its default configuration.
+	 * This will restore all settings to their initial values.
+	 */
+	resetConfig() {
+		// Get the default config for this manipulator type
+		const defaultConfig = this.constructor.defaultConfig;
+
+		// Create a fresh config object with defaults
+		const resetConfig = {
+			...defaultConfig
+		};
+
+		// Apply the reset configuration
+		this.setConfig(resetConfig);
+
+		this.log('Reset to default configuration');
+
+		return resetConfig;
+	}
+	
+	/**
+	 * Get all standard gamepad buttons
+	 * @returns {string[]}
+	 */
+	static get STANDARD_BUTTONS() {
+		return [
+			'buttonA', 'buttonB', 'buttonX', 'buttonY',
+			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
+			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
+			'buttonThumbL', 'buttonThumbR'
+		];
+	}
+
+	/**
+	 * Get display names for all gamepad buttons
+	 * @returns {Object<string, string>}
+	 */
+	static get BUTTON_DISPLAY_NAMES() {
+		return {
+			'buttonA': 'A',
+			'buttonB': 'B',
+			'buttonX': 'X',
+			'buttonY': 'Y',
+			'dpadUp': '↑',
+			'dpadDown': '↓',
+			'dpadLeft': '←',
+			'dpadRight': '→',
+			'buttonL': 'L',
+			'buttonR': 'R',
+			'buttonZL': 'ZL',
+			'buttonZR': 'ZR',
+			'buttonThumbL': 'L3',
+			'buttonThumbR': 'R3',
+			'buttonMinus': '-',
+			'buttonPlus': '+',
+			'buttonHome': 'Home',
+			'buttonCapture': 'C'
+		};
+	}
+
+	/**
+	 * Get all standard analog axes
+	 * @returns {string[]}
+	 */
+	static get ANALOG_AXES() {
+		return ['leftX', 'leftY', 'rightX', 'rightY'];
+	}
+
+	/**
+	 * Get display names for analog axes
+	 * @returns {Object<string, string>}
+	 */
+	static get AXIS_DISPLAY_NAMES() {
+		return {
+			'leftX': 'Left X',
+			'leftY': 'Left Y',
+			'rightX': 'Right X',
+			'rightY': 'Right Y'
+		};
+	}
+
+	/**
+	 * Get button groups for UI organization
+	 * @returns {Array<{title: string, buttons: Array<{name: string, display: string}>}>}
+	 */
+	static get BUTTON_GROUPS() {
+		return [
+			{
+				title: 'Face Buttons',
+				buttons: [
+					{ name: 'buttonA', display: this.BUTTON_DISPLAY_NAMES.buttonA },
+					{ name: 'buttonB', display: this.BUTTON_DISPLAY_NAMES.buttonB },
+					{ name: 'buttonX', display: this.BUTTON_DISPLAY_NAMES.buttonX },
+					{ name: 'buttonY', display: this.BUTTON_DISPLAY_NAMES.buttonY }
+				]
+			},
+			{
+				title: 'D-Pad',
+				buttons: [
+					{ name: 'dpadUp', display: this.BUTTON_DISPLAY_NAMES.dpadUp },
+					{ name: 'dpadDown', display: this.BUTTON_DISPLAY_NAMES.dpadDown },
+					{ name: 'dpadLeft', display: this.BUTTON_DISPLAY_NAMES.dpadLeft },
+					{ name: 'dpadRight', display: this.BUTTON_DISPLAY_NAMES.dpadRight }
+				]
+			},
+			{
+				title: 'Shoulder',
+				buttons: [
+					{ name: 'buttonL', display: this.BUTTON_DISPLAY_NAMES.buttonL },
+					{ name: 'buttonR', display: this.BUTTON_DISPLAY_NAMES.buttonR },
+					{ name: 'buttonZL', display: this.BUTTON_DISPLAY_NAMES.buttonZL },
+					{ name: 'buttonZR', display: this.BUTTON_DISPLAY_NAMES.buttonZR }
+				]
+			},
+			{
+				title: 'System',
+				buttons: [
+					{ name: 'buttonPlus', display: this.BUTTON_DISPLAY_NAMES.buttonPlus },
+					{ name: 'buttonMinus', display: this.BUTTON_DISPLAY_NAMES.buttonMinus },
+					{ name: 'buttonCapture', display: this.BUTTON_DISPLAY_NAMES.buttonCapture },
+					{ name: 'buttonHome', display: this.BUTTON_DISPLAY_NAMES.buttonHome }
+				]
+			},
+			{
+				title: 'Sticks',
+				buttons: [
+					{ name: 'buttonThumbL', display: this.BUTTON_DISPLAY_NAMES.buttonThumbL },
+					{ name: 'buttonThumbR', display: this.BUTTON_DISPLAY_NAMES.buttonThumbR }
+				]
+			}
+		];
+	}
+
+	/**
+	 * Get axis groups for UI organization
+	 * @returns {Array<{title: string, axes: Array<{name: string, display: string}>}>}
+	 */
+	static get AXIS_GROUPS() {
+		return [
+			{
+				title: 'Left Stick',
+				axes: [
+					{ name: 'leftX', display: this.AXIS_DISPLAY_NAMES.leftX },
+					{ name: 'leftY', display: this.AXIS_DISPLAY_NAMES.leftY }
+				]
+			},
+			{
+				title: 'Right Stick',
+				axes: [
+					{ name: 'rightX', display: this.AXIS_DISPLAY_NAMES.rightX },
+					{ name: 'rightY', display: this.AXIS_DISPLAY_NAMES.rightY }
+				]
+			}
+		];
+	}
+
+	/**
+	 * Get system buttons (non-remappable in some contexts)
+	 * @returns {string[]}
+	 */
+	static get SYSTEM_BUTTONS() {
+		return ['buttonMinus', 'buttonPlus', 'buttonHome', 'buttonCapture'];
+	}
+
+	/**
+	 * Get all buttons including system buttons
+	 * @returns {string[]}
+	 */
+	static get ALL_BUTTONS() {
+		return [...this.STANDARD_BUTTONS, ...this.SYSTEM_BUTTONS];
 	}
 
 	/**

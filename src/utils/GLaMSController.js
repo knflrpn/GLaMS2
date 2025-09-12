@@ -461,21 +461,39 @@ export class GLaMSController {
 	 * @returns {Promise<Array>}
 	 */
 	async clearPipeline() {
-		const manipulators = await this.getManipulators(false);
-		const results = [];
-
-		for (const manipulator of manipulators) {
-			try {
-				const result = await this.removeManipulator(manipulator.id);
-				results.push({ success: true, id: manipulator.id, result });
-			} catch (error) {
-				results.push({ success: false, id: manipulator.id, error: error.message });
-			}
-		}
+		const result = await this.sendMessageWithResponse({
+			type: 'clearPipeline'
+		});
 
 		this._clearCache();
-		this.emit('pipelineCleared', results);
-		return results;
+		this.emit('pipelineCleared', result);
+		return result;
+	}
+
+	/**
+	 * Reset each manipulator's config
+	 * @returns {Promise<Array>}
+	 */
+	async resetManipulatorConfigs() {
+		const result = await this.sendMessageWithResponse({
+			type: 'resetManipulatorConfigs'
+		});
+
+		this.emit('configsReset', result);
+		return result;
+	}
+
+	/**
+	 * Disable all manipulators
+	 * @returns {Promise<Array>}
+	 */
+	async disableManipulators() {
+		const result = await this.sendMessageWithResponse({
+			type: 'disableManipulators'
+		});
+
+		this.emit('disabledManipulators', result);
+		return result;
 	}
 
 	/**

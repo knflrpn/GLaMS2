@@ -20,8 +20,8 @@ export class MacroParser {
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
 			try {
-				const frame = this.parseLine(line);
-				frames.push(frame);
+				const parsedFrames = this.parseLine(line);
+				frames.push(...parsedFrames);
 			} catch (error) {
 				throw new Error(`Line ${i + 1}: ${error.message}`);
 			}
@@ -31,12 +31,49 @@ export class MacroParser {
 	}
 
 	/**
-	 * Parse a single line of macro script into a ControllerState.
+	 * Parse a single line of macro script into one or more ControllerState frames.
 	 * @param {string} line - A single line from the macro script
-	 * @returns {ControllerState} The parsed controller state
+	 * @returns {ControllerState[]} Array of controller states (repeated if specified)
 	 * @throws {Error} If line parsing fails
 	 */
 	static parseLine(line) {
+		// Extract frame count from the end of the line (if present)
+		const frameCountMatch = line.match(/^(.+?)\s*(\d+)\s*$/);
+		let frameCount = 1;
+		let contentLine = line;
+
+		if (frameCountMatch) {
+			contentLine = frameCountMatch[1].trim();
+			frameCount = parseInt(frameCountMatch[2], 10);
+
+			if (frameCount <= 0) {
+				throw new Error('Frame count must be a positive integer');
+			}
+			if (frameCount > 600) {
+				throw new Error('Frame count per line cannot exceed 600');
+			}
+		}
+
+		// Parse the controller state from the content
+		const state = this.parseControllerState(contentLine);
+
+		// Create array of repeated frames
+		const frames = [];
+		for (let i = 0; i < frameCount; i++) {
+			// Create a deep copy of the state for each frame
+			frames.push(state.clone());
+		}
+
+		return frames;
+	}
+
+	/**
+	 * Parse controller state from a line (without frame count).
+	 * @param {string} line - Line content without frame count
+	 * @returns {ControllerState} The parsed controller state
+	 * @throws {Error} If parsing fails
+	 */
+	static parseControllerState(line) {
 		const state = new ControllerState();
 
 		// Parse buttons {A B X Y}

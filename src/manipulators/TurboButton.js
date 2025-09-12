@@ -240,12 +240,7 @@ export class TurboButton extends BaseManipulator {
 	 * Enable turbo for all available buttons
 	 */
 	enableAllButtons() {
-		const allButtons = [
-			'buttonA', 'buttonB', 'buttonX', 'buttonY',
-			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
-			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
-			'buttonThumbL', 'buttonThumbR'
-		];
+		const allButtons = BaseManipulator.STANDARD_BUTTONS;
 
 		allButtons.forEach(button => this.turboButtons.add(button));
 
@@ -317,49 +312,11 @@ export class TurboButton extends BaseManipulator {
 		const buttonsLabel = document.createElement('p');
 		buttonsLabel.textContent = 'Turbo Buttons:';
 
-		// Define button groups
-		const buttonGroups = [
-			{
-				title: 'Face Buttons',
-				buttons: [
-					{ name: 'buttonA', display: 'A' },
-					{ name: 'buttonB', display: 'B' },
-					{ name: 'buttonX', display: 'X' },
-					{ name: 'buttonY', display: 'Y' }
-				]
-			},
-			{
-				title: 'D-Pad',
-				buttons: [
-					{ name: 'dpadUp', display: 'Up' },
-					{ name: 'dpadDown', display: 'Down' },
-					{ name: 'dpadLeft', display: 'Left' },
-					{ name: 'dpadRight', display: 'Right' }
-				]
-			},
-			{
-				title: 'Shoulder',
-				buttons: [
-					{ name: 'buttonL', display: 'L' },
-					{ name: 'buttonR', display: 'R' },
-					{ name: 'buttonZL', display: 'ZL' },
-					{ name: 'buttonZR', display: 'ZR' }
-				]
-			},
-			{
-				title: 'Sticks',
-				buttons: [
-					{ name: 'buttonThumbL', display: 'L3' },
-					{ name: 'buttonThumbR', display: 'R3' }
-				]
-			}
-		];
-
 		// Create button grid
 		const buttonGrid = document.createElement('div');
 		buttonGrid.className = 'turbo-button-grid';
 
-		buttonGroups.forEach(group => {
+		BaseManipulator.BUTTON_GROUPS.filter(group => group.title !== 'System').forEach(group => {
 			const groupDiv = document.createElement('div');
 
 			const groupTitle = document.createElement('p');

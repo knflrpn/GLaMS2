@@ -51,6 +51,24 @@ class ControllerState {
 	}
 
 	/**
+	 * Create a deep copy of the controller state.
+	 */
+	clone() {
+		const newState = new (this.constructor)();
+
+		// Copy digital buttons
+		Object.assign(newState.digital, this.digital);
+
+		// Copy analog inputs
+		Object.assign(newState.analog, this.analog);
+
+		// Copy IMU samples
+		Object.assign(newState.imuSample, this.imuSample);
+
+		return newState;
+	}
+
+	/**
 	 * Update one or more digital button states.
 	 */
 	setDigitalState(partial) {

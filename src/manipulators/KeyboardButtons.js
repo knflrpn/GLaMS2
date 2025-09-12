@@ -1,20 +1,19 @@
 /**
- * ./src/manipulators/KeyboardControl.js
+ * ./src/manipulators/KeyboardButtons.js
  *
  * Manipulator that converts keyboard input to gamepad state.
  * Listens for keyboard events and maps them to controller buttons.
  */
-import { ControllerState } from '../core/ControllerState.js';
 import { BaseManipulator } from './BaseManipulator.js';
 
 /**
- * @typedef {Object} KeyboardControlParams
+ * @typedef {Object} KeyboardButtonsParams
  * @property {boolean} [enabled=true] - Whether this manipulator is active
  * @property {Object<string, string>} [keyMappings={}] - Key to button mappings
  * @property {boolean} [captureEvents=true] - Whether to capture keyboard events
  */
 
-export class KeyboardControl extends BaseManipulator {
+export class KeyboardButtons extends BaseManipulator {
 	static get defaultConfig() {
 		return {
 			keyMappings: {
@@ -51,7 +50,7 @@ export class KeyboardControl extends BaseManipulator {
 	}
 
 	/**
-	 * @param {KeyboardControlParams} params - Configuration parameters
+	 * @param {KeyboardButtonsParams} params - Configuration parameters
 	 */
 	constructor(params = {}) {
 		super(params);
@@ -171,12 +170,7 @@ export class KeyboardControl extends BaseManipulator {
 	 */
 	setKeyMapping(key, button) {
 		// Validate button name
-		const validButtons = [
-			'buttonA', 'buttonB', 'buttonX', 'buttonY',
-			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
-			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
-			'buttonThumbL', 'buttonThumbR', 'buttonCapture'
-		];
+		const validButtons = BaseManipulator.ALL_BUTTONS;
 
 		if (!validButtons.includes(button)) {
 			throw new Error(`Invalid button name: ${button}`);
@@ -458,25 +452,7 @@ export class KeyboardControl extends BaseManipulator {
 	 * @private
 	 */
 	_formatButtonName(button) {
-		const buttonNames = {
-			'buttonA': 'A',
-			'buttonB': 'B',
-			'buttonX': 'X',
-			'buttonY': 'Y',
-			'dpadUp': '↑',
-			'dpadDown': '↓',
-			'dpadLeft': '←',
-			'dpadRight': '→',
-			'buttonL': 'L',
-			'buttonR': 'R',
-			'buttonZL': 'ZL',
-			'buttonZR': 'ZR',
-			'buttonThumbL': 'L3',
-			'buttonThumbR': 'R3',
-			'buttonCapture': 'c'
-		};
-
-		return buttonNames[button] || button;
+		return BaseManipulator.BUTTON_DISPLAY_NAMES[button] || button;
 	}
 
 	createControls() {
@@ -543,30 +519,19 @@ export class KeyboardControl extends BaseManipulator {
 		buttonSelect.className = 'keyboard-button-select';
 
 		// Add button options
-		const buttonOptions = [
-			{ value: '', text: 'Select button...' },
-			{ value: 'buttonA', text: 'A' },
-			{ value: 'buttonB', text: 'B' },
-			{ value: 'buttonX', text: 'X' },
-			{ value: 'buttonY', text: 'Y' },
-			{ value: 'dpadUp', text: 'D-pad Up' },
-			{ value: 'dpadDown', text: 'D-pad Down' },
-			{ value: 'dpadLeft', text: 'D-pad Left' },
-			{ value: 'dpadRight', text: 'D-pad Right' },
-			{ value: 'buttonL', text: 'L (Left Shoulder)' },
-			{ value: 'buttonR', text: 'R (Right Shoulder)' },
-			{ value: 'buttonZL', text: 'ZL (Left Trigger)' },
-			{ value: 'buttonZR', text: 'ZR (Right Trigger)' },
-			{ value: 'buttonThumbL', text: 'L3 (Left Stick)' },
-			{ value: 'buttonThumbR', text: 'R3 (Right Stick)' },
-			{ value: 'buttonCapture', text: 'c' }
-		];
+		BaseManipulator.BUTTON_GROUPS.forEach(group => {
+			const optgroup = document.createElement('optgroup');
+			optgroup.label = group.title;
+			optgroup.className = "keyboard-optgroup"
 
-		buttonOptions.forEach(option => {
-			const optionEl = document.createElement('option');
-			optionEl.value = option.value;
-			optionEl.textContent = option.text;
-			buttonSelect.appendChild(optionEl);
+			group.buttons.forEach(button => {
+				const option = document.createElement('option');
+				option.value = button.name;
+				option.textContent = `${button.display} (${button.name})`;
+				optgroup.appendChild(option);
+			});
+
+			buttonSelect.appendChild(optgroup);
 		});
 
 		// Key input
@@ -768,6 +733,10 @@ export class KeyboardControl extends BaseManipulator {
 			.keyboard-key-input {
 				max-width: 120px;
 				cursor: pointer;
+			}
+			
+			.keyboard-optgroup {
+				background-color: silver;
 			}
 			`;
 		container.appendChild(style);

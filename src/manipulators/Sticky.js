@@ -12,6 +12,7 @@ import { BaseManipulator } from './BaseManipulator.js';
  * @property {number} [stickyDuration=500] - Duration to keep buttons/peaks active in milliseconds
  * @property {string[]} [stickyButtons=[]] - Array of button names to make sticky
  * @property {string[]} [stickyAxes=[]] - Array of analog axis names to make sticky
+ * @property {boolean} [resetTimerOnPress=true] - Whether pressing a stuck button resets its timer
  */
 
 export class Sticky extends BaseManipulator {
@@ -20,11 +21,12 @@ export class Sticky extends BaseManipulator {
 			stickyDuration: 500,
 			stickyButtons: [],
 			stickyAxes: [],
+			resetTimerOnPress: false,
 		};
 	}
 
 	static get displayName() {
-		return "Sticky";
+		return "Sticky Buttons";
 	}
 
 	static get description() {
@@ -40,6 +42,7 @@ export class Sticky extends BaseManipulator {
 		this.stickyDuration = params.stickyDuration || 500;
 		this.stickyButtons = new Set(params.stickyButtons || []);
 		this.stickyAxes = new Set(params.stickyAxes || []);
+		this.resetTimerOnPress = params.resetTimerOnPress !== undefined ? params.resetTimerOnPress : false;
 		this.peakThreshold = 0.1;
 
 		// Button state tracking: buttonName -> { active: bool, timer: number }
@@ -50,6 +53,7 @@ export class Sticky extends BaseManipulator {
 
 		// UI elements
 		this._durationInput = null;
+		this._resetTimerCheckbox = null;
 		this._buttonCheckboxes = new Map();
 		this._axisCheckboxes = new Map();
 
@@ -76,6 +80,22 @@ export class Sticky extends BaseManipulator {
 				}
 			],
 			handler: (params) => this.setStickyDuration(params.duration)
+		});
+
+		this.registerAction({
+			name: 'setResetTimerOnPress',
+			displayName: 'Set Reset Timer on Press',
+			description: 'Set whether pressing a stuck button resets its timer',
+			parameters: [
+				{
+					name: 'reset',
+					type: 'boolean',
+					description: 'Whether to reset timer on press',
+					required: true,
+					default: true
+				}
+			],
+			handler: (params) => this.setResetTimerOnPress(params.reset)
 		});
 
 		this.registerAction({
@@ -233,6 +253,21 @@ export class Sticky extends BaseManipulator {
 
 		this.log(`Sticky duration set to ${newDuration}ms`);
 		return newDuration;
+	}
+
+	/**
+	 * Set whether pressing a stuck button resets its timer
+	 * @param {boolean} reset - Whether to reset timer on press
+	 */
+	setResetTimerOnPress(reset) {
+		this.resetTimerOnPress = !!reset;
+
+		if (this._resetTimerCheckbox) {
+			this._resetTimerCheckbox.checked = this.resetTimerOnPress;
+		}
+
+		this.log(`Reset timer on press: ${this.resetTimerOnPress ? 'enabled' : 'disabled'}`);
+		return this.resetTimerOnPress;
 	}
 
 	/**
@@ -519,10 +554,17 @@ export class Sticky extends BaseManipulator {
 			const buttonState = this.buttonStates.get(buttonName);
 			const currentPressed = state.digital[buttonName];
 
-			// If button is currently pressed, activate sticky state
+			// If button is currently pressed
 			if (currentPressed) {
-				buttonState.active = true;
-				buttonState.timer = this.stickyDuration;
+				if (!buttonState.active) {
+					// Button wasn't sticky before, activate sticky state
+					buttonState.active = true;
+					buttonState.timer = this.stickyDuration;
+				} else if (this.resetTimerOnPress) {
+					// Button was already sticky and resetTimerOnPress is enabled
+					buttonState.timer = this.stickyDuration;
+				}
+				// If resetTimerOnPress is false and button was already sticky, don't reset timer
 			}
 
 			// Update timer if sticky is active
@@ -542,7 +584,7 @@ export class Sticky extends BaseManipulator {
 			}
 		}
 
-		// Process each sticky axis
+		// Process each sticky axis (analog behavior remains the same as it always refreshes)
 		for (const axisName of this.stickyAxes) {
 			if (!(axisName in state.analog)) continue;
 
@@ -608,7 +650,7 @@ export class Sticky extends BaseManipulator {
 
 		return state;
 	}
-	
+
 	createControls() {
 		const container = document.createElement('div');
 		container.className = 'manipulator-controls sticky-custom';
@@ -636,7 +678,23 @@ export class Sticky extends BaseManipulator {
 		durationLabel.appendChild(this._durationInput);
 		durationDiv.appendChild(durationLabel);
 
+		// Reset timer on press control
+		const resetTimerDiv = document.createElement('div');
+		const resetTimerLabel = document.createElement('label');
+		resetTimerLabel.textContent = 'Re-pressing stuck button resets timer: ';
+
+		this._resetTimerCheckbox = document.createElement('input');
+		this._resetTimerCheckbox.type = 'checkbox';
+		this._resetTimerCheckbox.checked = this.resetTimerOnPress;
+		this._resetTimerCheckbox.addEventListener('change', () => {
+			this.executeAction('setResetTimerOnPress', { reset: this._resetTimerCheckbox.checked });
+		});
+
+		resetTimerLabel.appendChild(this._resetTimerCheckbox);
+		resetTimerDiv.appendChild(resetTimerLabel);
+
 		mainControls.appendChild(durationDiv);
+		mainControls.appendChild(resetTimerDiv);
 
 		// Button selection
 		const buttonsDiv = document.createElement('div');
@@ -872,12 +930,17 @@ export class Sticky extends BaseManipulator {
 			stickyDuration: this.stickyDuration,
 			stickyButtons: Array.from(this.stickyButtons),
 			stickyAxes: Array.from(this.stickyAxes),
+			resetTimerOnPress: this.resetTimerOnPress,
 		};
 	}
 
 	_setSpecificConfig(config) {
 		if (config.stickyDuration !== undefined) {
 			this.setStickyDuration(config.stickyDuration);
+		}
+
+		if (config.resetTimerOnPress !== undefined) {
+			this.setResetTimerOnPress(config.resetTimerOnPress);
 		}
 
 		if (config.stickyButtons !== undefined) {
@@ -927,5 +990,6 @@ export class Sticky extends BaseManipulator {
 		this._buttonCheckboxes.clear();
 		this._axisCheckboxes.clear();
 		this._durationInput = null;
+		this._resetTimerCheckbox = null;
 	}
 }

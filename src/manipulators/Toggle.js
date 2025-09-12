@@ -266,14 +266,7 @@ export class Toggle extends BaseManipulator {
 	 * Enable toggle for all available buttons
 	 */
 	enableAllButtons() {
-		const allButtons = [
-			'buttonA', 'buttonB', 'buttonX', 'buttonY',
-			'dpadUp', 'dpadDown', 'dpadLeft', 'dpadRight',
-			'buttonL', 'buttonR', 'buttonZL', 'buttonZR',
-			'buttonThumbL', 'buttonThumbR'
-		];
-
-		allButtons.forEach(button => {
+		BaseManipulator.STANDARD_BUTTONS.forEach(button => {
 			this.toggleButtons.add(button);
 			if (!this.buttonStates.has(button)) {
 				this.buttonStates.set(button, { toggled: false, lastPressed: false });
@@ -398,49 +391,11 @@ export class Toggle extends BaseManipulator {
 		const buttonsLabel = document.createElement('p');
 		buttonsLabel.textContent = 'Toggle Buttons:';
 
-		// Define button groups
-		const buttonGroups = [
-			{
-				title: 'Face Buttons',
-				buttons: [
-					{ name: 'buttonA', display: 'A' },
-					{ name: 'buttonB', display: 'B' },
-					{ name: 'buttonX', display: 'X' },
-					{ name: 'buttonY', display: 'Y' }
-				]
-			},
-			{
-				title: 'D-Pad',
-				buttons: [
-					{ name: 'dpadUp', display: 'Up' },
-					{ name: 'dpadDown', display: 'Down' },
-					{ name: 'dpadLeft', display: 'Left' },
-					{ name: 'dpadRight', display: 'Right' }
-				]
-			},
-			{
-				title: 'Shoulder',
-				buttons: [
-					{ name: 'buttonL', display: 'L' },
-					{ name: 'buttonR', display: 'R' },
-					{ name: 'buttonZL', display: 'ZL' },
-					{ name: 'buttonZR', display: 'ZR' }
-				]
-			},
-			{
-				title: 'Sticks',
-				buttons: [
-					{ name: 'buttonThumbL', display: 'L3' },
-					{ name: 'buttonThumbR', display: 'R3' }
-				]
-			}
-		];
-
 		// Create button grid
 		const buttonGrid = document.createElement('div');
 		buttonGrid.className = 'toggle-button-grid';
 
-		buttonGroups.forEach(group => {
+		BaseManipulator.BUTTON_GROUPS.forEach(group => {
 			const groupDiv = document.createElement('div');
 
 			const groupTitle = document.createElement('p');

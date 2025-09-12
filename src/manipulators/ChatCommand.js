@@ -61,7 +61,7 @@ export class ChatCommand extends BaseManipulator {
 			channel: '',
 			maxMessages: 50,
 			maxDuration: 2000,
-			configName: '',
+			configName: 'default',
 			processInOrder: false
 		};
 	}
@@ -83,7 +83,7 @@ export class ChatCommand extends BaseManipulator {
 		this.maxMessages = params.maxMessages || 50;
 		this.configName = params.configName || 'default';
 		this.processInOrder = params.processInOrder || false;
-		this.maxDuration = 2000; // maximum duration that a command can run for
+		this.maxDuration = params.maxDuration || 2000; // maximum duration that a command can run for
 
 		// WebSocket connection
 		this.ws = null;
@@ -105,7 +105,7 @@ export class ChatCommand extends BaseManipulator {
 		this.currentCommandStates = []; // Array of controller states for current command
 		this.currentCommandIndex = 0;
 		this.currentCommandStartTime = 0;
-		this.frameCounter = 0; // Count frames at 50ms intervals
+		this.frameCounter = 0; // Count frames at 25ms intervals
 
 		// UI elements
 		this._channelInput = null;
@@ -238,7 +238,7 @@ export class ChatCommand extends BaseManipulator {
 				{
 					name: 'duration',
 					type: 'number',
-					description: 'Duration in milliseconds (50-5000)',
+					description: 'Duration in milliseconds (25-5000)',
 					required: true,
 					default: 2000
 				}
@@ -257,6 +257,15 @@ export class ChatCommand extends BaseManipulator {
 			name: 'insertMessage',
 			displayName: 'Insert Message',
 			description: 'Insert a message into the chat system',
+			parameters: [
+				{
+					name: 'message',
+					type: 'string',
+					description: 'Message to insert',
+					required: true,
+					default: ""
+				}
+			],
 			handler: (params) => this._processMessage("bot", params.message),
 		});
 	}
@@ -443,11 +452,11 @@ export class ChatCommand extends BaseManipulator {
 	}
 
 	/**
-	 * Set maximum duration that commands can play (50-5000ms)
+	 * Set maximum duration that commands can play (25-5000ms)
 	 * @param {number} max_ms
 	 */
 	setMaxDuration(max_ms) {
-		this.maxDuration = Math.max(50, Math.min(5000, max_ms));
+		this.maxDuration = Math.max(25, Math.min(5000, max_ms));
 		// Update UI input if it exists
 		if (this._maxDurationInput) {
 			this._maxDurationInput.value = this.maxDuration;
@@ -668,10 +677,10 @@ export class ChatCommand extends BaseManipulator {
 			const commandState = this.currentCommandStates[this.currentCommandIndex];
 			state = this._mergeStates(state, commandState);
 
-			// Advance to next frame every 50ms
+			// Advance to next frame every 25ms
 			this.frameCounter += deltaTime;
-			if (this.frameCounter >= 50) {
-				this.frameCounter -= 50;
+			if (this.frameCounter >= 25) {
+				this.frameCounter -= 25;
 				this.currentCommandIndex++;
 			}
 		}
@@ -740,8 +749,8 @@ export class ChatCommand extends BaseManipulator {
 
 		// Calculate initial command duration based on queue fill.
 		// Assume that the goal is to stretch the remaining commands
-		// over 80% of the max duration, but give each one at least 50 ms.
-		let desiredDuration = Math.max((this.maxDuration * 0.8) / this.commandQueue.length, 50);
+		// over 80% of the max duration, but give each one at least 25 ms.
+		let desiredDuration = Math.max((this.maxDuration * 0.8) / this.commandQueue.length, 25);
 
 		// Check if any commands require a longer time.
 		for (const command of commandsToProcess) {
@@ -757,8 +766,8 @@ export class ChatCommand extends BaseManipulator {
 			}
 		}, desiredDuration);
 
-		// Initialize state array (one state per 50ms frame)
-		const frameCount = Math.ceil(desiredDuration / 50);
+		// Initialize state array (one state per 25 ms frame)
+		const frameCount = Math.ceil(desiredDuration / 25);
 		this.currentCommandStates = [];
 		for (let i = 0; i < frameCount; i++) {
 			this.currentCommandStates.push({
@@ -834,13 +843,13 @@ export class ChatCommand extends BaseManipulator {
 	 */
 	_applyCommandToStates(command) {
 		// Respect the command's maximum time, otherwise fill the buffer.
-		const maxFrameCount = Math.min(Math.ceil(command.maxDuration / 50), this.currentCommandStates.length);
+		const maxFrameCount = Math.min(Math.ceil(command.maxDuration / 25), this.currentCommandStates.length);
 		// Apply each action for its duration. If all actions are consumed, loop.
 		let currentFrame = 0;
 		while (currentFrame < maxFrameCount) {
 			for (const action of command.actions) {
 				// How many frames this action gets applied to
-				const actionFrameCount = Math.ceil(action.duration / 50);
+				const actionFrameCount = Math.ceil(action.duration / 25);
 
 				// Apply to frames
 				for (let i = 0; (i < actionFrameCount) && (currentFrame < maxFrameCount); i++) {
@@ -977,9 +986,9 @@ export class ChatCommand extends BaseManipulator {
 
 		this._maxDurationInput = document.createElement('input');
 		this._maxDurationInput.type = 'number';
-		this._maxDurationInput.min = '50';
+		this._maxDurationInput.min = '25';
 		this._maxDurationInput.max = '5000';
-		this._maxDurationInput.step = '50';
+		this._maxDurationInput.step = '25';
 		this._maxDurationInput.value = this.maxDuration;
 		this._maxDurationInput.className = 'max-duration-input';
 		this._maxDurationInput.addEventListener('change', () => {
@@ -1192,7 +1201,7 @@ export class ChatCommand extends BaseManipulator {
 		}
 
 		if (config.processInOrder !== undefined) {
-			this.setProcessOrder(config.processInOrder);
+			this.processInOrder = config.processInOrder;
 		}
 	}
 

@@ -13,6 +13,10 @@ body {
 	line-height: 1.2;
 }
 
+ul, ol {
+	margin-left: 1rem;
+}
+
 .container {
 	max-width: 1400px;
 	margin: 0 auto;
@@ -51,8 +55,8 @@ body {
 		"t t"
 		"l r"
 		"b b";
-	grid-template-columns: 50% 50%;
-	gap: 20px;
+	grid-template-columns: 49% 49%;
+	gap: 1rem;
 	width: 100%;
 	height: 100%;
 }
@@ -75,7 +79,7 @@ body {
 
 @media (max-width: 1024px) {
 	.main-content {
-		grid-template-columns: 1fr;
+		grid-template-columns: 100%;
 	}
 }
 
@@ -778,6 +782,7 @@ input[type="text"]:focus {
 	margin-bottom: 8px;
 	line-height: 1.4;
 	color: #e0e0e0;
+	overflow-wrap: anywhere;
 }
 
 .message .timestamp {

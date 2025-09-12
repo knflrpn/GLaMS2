@@ -21,7 +21,7 @@ export class Cooldown extends BaseManipulator {
 		return {
 			buttonCooldown: 500,
 			stickCooldown: 1000,
-			cooldownButtons: [],
+			cooldownButtons: BaseManipulator.STANDARD_BUTTONS,
 			enableLeftStick: true,
 			enableRightStick: true,
 		};
@@ -43,10 +43,7 @@ export class Cooldown extends BaseManipulator {
 
 		this.buttonCooldown = params.buttonCooldown ?? 500;
 		this.stickCooldown = params.stickCooldown ?? 1000;
-		this.cooldownButtons = new Set(params.cooldownButtons || 
-			["buttonA", "buttonB", "buttonX", "buttonY", "buttonL", 
-				"buttonR", "buttonZL", "buttonZR", "dpadUp", "dpadDown", 
-				"dpadLeft", "dpadRight", "buttonThumbL", "buttonThumbR"]);
+		this.cooldownButtons = new Set(params.cooldownButtons || BaseManipulator.STANDARD_BUTTONS);
 		this.enableLeftStick = params.enableLeftStick ?? true;
 		this.enableRightStick = params.enableRightStick ?? true;
 		this.stickThreshold = 0.1;
@@ -532,42 +529,7 @@ export class Cooldown extends BaseManipulator {
 		buttonsLabel.textContent = 'Cooldown Buttons:';
 
 		// Define button groups
-		const buttonGroups = [
-			{
-				title: 'Face Buttons',
-				buttons: [
-					{ name: 'buttonA', display: 'A' },
-					{ name: 'buttonB', display: 'B' },
-					{ name: 'buttonX', display: 'X' },
-					{ name: 'buttonY', display: 'Y' }
-				]
-			},
-			{
-				title: 'D-Pad',
-				buttons: [
-					{ name: 'dpadUp', display: 'Up' },
-					{ name: 'dpadDown', display: 'Down' },
-					{ name: 'dpadLeft', display: 'Left' },
-					{ name: 'dpadRight', display: 'Right' }
-				]
-			},
-			{
-				title: 'Shoulder',
-				buttons: [
-					{ name: 'buttonL', display: 'L' },
-					{ name: 'buttonR', display: 'R' },
-					{ name: 'buttonZL', display: 'ZL' },
-					{ name: 'buttonZR', display: 'ZR' }
-				]
-			},
-			{
-				title: 'Sticks',
-				buttons: [
-					{ name: 'buttonThumbL', display: 'L3' },
-					{ name: 'buttonThumbR', display: 'R3' }
-				]
-			}
-		];
+		const buttonGroups = BaseManipulator.BUTTON_GROUPS;
 
 		// Create button grid
 		const buttonGrid = document.createElement('div');

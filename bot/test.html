@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLaMS Controller Interface</title>
+    <link rel="stylesheet" href="../style.css">
+</head>
+
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="header">
+                <h1>GLaMS Controller Interface</h1>
+                <p>Dynamic controller interface for GLaMS manipulator pipeline</p>
+            </div>
+
+            <div class="left">
+                <div class="stack">
+                    <!-- Connection Panel -->
+                    <div class="panel">
+                        <h2>
+                            <span class="status-indicator" id="connectionStatus"></span>
+                            Connection
+                        </h2>
+
+                        <div class="status-container">
+                            <div class="connection-status disconnected" id="connectionText">
+                                Disconnected
+                            </div>
+                        </div>
+
+                        <div class="manipulator-control-group">
+                            <label for="roomName">Room Name:</label>
+                            <input type="text" id="roomName" placeholder="Enter room name" value="test">
+                        </div>
+
+                        <div class="manipulator-control-group">
+                            <label for="connectionMethod">Connection Method:</label>
+                            <select id="connectionMethod">
+                                <option value="websocket">WebSocket</option>
+                                <option value="browser">Browser Messaging</option>
+                            </select>
+                        </div>
+
+                        <div class="inline-with-gap">
+                            <button class="button" id="connectBtn">Connect</button>
+                            <button class="button secondary" id="refreshBtn" disabled>Refresh Pipeline</button>
+                            <button class="button danger" id="disconnectBtn" disabled>Disconnect</button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Panel -->
+                    <div class="panel" id="statsPanel" style="display: none;">
+                        <h2>Statistics</h2>
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <label>Manipulators</label>
+                                <div class="value" id="manipulatorCount">0</div>
+                            </div>
+                            <div class="status-item">
+                                <label>Total Actions</label>
+                                <div class="value" id="actionCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right">
+                <div class="stack">
+                    <!-- Pipeline Panel -->
+                    <div class="panel">
+                        <h2>Pipeline</h2>
+                        <div class="pipeline-container" id="manipulatorsPanel">
+                            <!-- Manipulators will be dynamically added here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Panel -->
+            <div class="messages">
+                <h3>System Messages</h3>
+                <div id="messageLog"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { GLaMSController } from '../src/utils/GLaMSController.js';
+
+        // Application state
+        let controller = null;
+        let manipulators = [];
+
+        // DOM elements
+        const elements = {
+            roomName: document.getElementById('roomName'),
+            connectionMethod: document.getElementById('connectionMethod'),
+            connectBtn: document.getElementById('connectBtn'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            disconnectBtn: document.getElementById('disconnectBtn'),
+            connectionStatus: document.getElementById('connectionStatus'),
+            connectionText: document.getElementById('connectionText'),
+            manipulatorsPanel: document.getElementById('manipulatorsPanel'),
+            messageLog: document.getElementById('messageLog'),
+            statsPanel: document.getElementById('statsPanel'),
+            manipulatorCount: document.getElementById('manipulatorCount'),
+            actionCount: document.getElementById('actionCount')
+        };
+
+        // Logging function
+        function log(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = 'message';
+
+            const timestamp = document.createElement('span');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = `[${new Date().toLocaleTimeString()}]`;
+
+            const content = document.createElement('span');
+            content.textContent = ` ${message}`;
+            content.style.color = type === 'error' ? '#ef4444' :
+                type === 'success' ? '#22c55e' : '#e0e0e0';
+
+            entry.appendChild(timestamp);
+            entry.appendChild(content);
+            elements.messageLog.appendChild(entry);
+            elements.messageLog.scrollTop = elements.messageLog.scrollHeight;
+        }
+
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            elements.connectionStatus.classList.toggle('connected', connected);
+            elements.connectionText.className = connected ? 'connection-status connected' : 'connection-status disconnected';
+            elements.connectionText.textContent = connected ?
+                `Connected to ${controller?.currentRoom || 'room'}` : 'Disconnected';
+            elements.connectBtn.disabled = connected;
+            elements.refreshBtn.disabled = !connected;
+            elements.disconnectBtn.disabled = !connected;
+        }
+
+        // Update statistics
+        function updateStats() {
+            const totalActions = manipulators.reduce((sum, m) => sum + (m.actionCount || 0), 0);
+
+            elements.manipulatorCount.textContent = manipulators.length;
+            elements.actionCount.textContent = totalActions;
+            elements.statsPanel.style.display = manipulators.length > 0 ? 'block' : 'none';
+        }
+
+        // Create parameter input
+        function createParameterInput(param, actionContainer) {
+            const paramGroup = document.createElement('div');
+            paramGroup.className = 'manipulator-control-group';
+
+            const label = document.createElement('label');
+            label.textContent = `${param.name}${param.required ? ' *' : ''}`;
+
+            const input = document.createElement('input');
+            input.type = param.type === 'number' ? 'number' : 'text';
+            input.placeholder = param.description || param.name;
+            input.value = param.default || '';
+            input.dataset.paramName = param.name;
+            input.dataset.paramType = param.type || 'string';
+
+            paramGroup.appendChild(label);
+            paramGroup.appendChild(input);
+            actionContainer.appendChild(paramGroup);
+        }
+
+        // Execute action
+        async function executeAction(manipulatorId, actionName, actionContainer) {
+            const btn = actionContainer.querySelector('.execute-btn');
+            const originalText = btn.textContent;
+
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Executing...';
+
+                // Gather parameters
+                const params = {};
+                const inputs = actionContainer.querySelectorAll('[data-param-name]');
+
+                inputs.forEach(input => {
+                    const name = input.dataset.paramName;
+                    const type = input.dataset.paramType;
+                    let value = input.value;
+
+                    if (value) {
+                        if (type === 'number') {
+                            value = parseFloat(value);
+                        } else if (type === 'boolean') {
+                            value = value.toLowerCase() === 'true';
+                        } else if (type === 'object') {
+                            try {
+                                value = JSON.parse(value);
+                            } catch (e) {
+                                log(`Invalid JSON for parameter ${name}: ${e.message}`, 'error');
+                                return;
+                            }
+                        }
+                    }
+
+                    if (value !== '' && value !== null) {
+                        params[name] = value;
+                    }
+                });
+
+                log(`Executing ${actionName} on ${manipulatorId} with params: ${JSON.stringify(params)}`);
+
+                const result = await controller.executeAction(manipulatorId, actionName, params);
+
+                log(`Action ${actionName} completed successfully`, 'success');
+
+            } catch (error) {
+                log(`Action ${actionName} failed: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        }
+
+        // Create action section
+        function createActionSection(manipulatorId, action) {
+            const actionContainer = document.createElement('div');
+            actionContainer.style.background = 'rgba(255, 255, 255, 0.03)';
+            actionContainer.style.padding = '15px';
+            actionContainer.style.borderRadius = '8px';
+            actionContainer.style.border = '1px solid rgba(255, 255, 255, 0.05)';
+            actionContainer.style.marginBottom = '10px';
+
+            const actionTitle = document.createElement('h4');
+            actionTitle.textContent = action.displayName;
+            actionTitle.style.color = '#ffffff';
+            actionTitle.style.marginBottom = '10px';
+            actionContainer.appendChild(actionTitle);
+
+            if (action.description) {
+                const actionDesc = document.createElement('p');
+                actionDesc.textContent = action.description;
+                actionDesc.style.color = '#a0a0a0';
+                actionDesc.style.fontSize = '0.9em';
+                actionDesc.style.marginBottom = '10px';
+                actionContainer.appendChild(actionDesc);
+            }
+
+            // Create parameter inputs
+            if (action.parameters && action.parameters.length > 0) {
+                action.parameters.forEach(param => {
+                    createParameterInput(param, actionContainer);
+                });
+            }
+
+            // Create execute button
+            const executeBtn = document.createElement('button');
+            executeBtn.className = 'button small execute-btn';
+            executeBtn.textContent = 'Execute';
+            executeBtn.onclick = () => executeAction(manipulatorId, action.name, actionContainer);
+            actionContainer.appendChild(executeBtn);
+
+            return actionContainer;
+        }
+
+        // Create manipulator card
+        async function createManipulatorCard(manipulator) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'manipulator-wrapper';
+
+            // Header
+            const title = document.createElement('h3');
+            title.textContent = manipulator.title;
+            wrapper.appendChild(title);
+
+            // Type info
+            if (manipulator.type) {
+                const typeInfo = document.createElement('p');
+                typeInfo.textContent = `Type: ${manipulator.type}`;
+                typeInfo.style.color = '#a0a0a0';
+                typeInfo.style.marginBottom = '15px';
+                wrapper.appendChild(typeInfo);
+            }
+
+            // Get actions for this manipulator
+            try {
+                const actions = await controller.getManipulatorActions(manipulator.id);
+
+                if (actions && actions.length > 0) {
+                    manipulator.actionCount = actions.length;
+
+                    const actionsTitle = document.createElement('h4');
+                    actionsTitle.textContent = 'Actions';
+                    actionsTitle.style.color = '#ffffff';
+                    actionsTitle.style.marginTop = '20px';
+                    actionsTitle.style.marginBottom = '10px';
+                    wrapper.appendChild(actionsTitle);
+
+                    actions.forEach(action => {
+                        const actionSection = createActionSection(manipulator.id, action);
+                        wrapper.appendChild(actionSection);
+                    });
+
+                } else {
+                    manipulator.actionCount = 0;
+                    const noActions = document.createElement('p');
+                    noActions.textContent = 'No actions available';
+                    noActions.style.color = '#718096';
+                    noActions.style.fontStyle = 'italic';
+                    noActions.style.marginTop = '15px';
+                    wrapper.appendChild(noActions);
+                }
+
+            } catch (error) {
+                log(`Failed to get actions for ${manipulator.title}: ${error.message}`, 'error');
+                manipulator.actionCount = 0;
+                const errorDiv = document.createElement('p');
+                errorDiv.textContent = 'Failed to load actions';
+                errorDiv.style.color = '#ef4444';
+                errorDiv.style.marginTop = '15px';
+                wrapper.appendChild(errorDiv);
+            }
+
+            return wrapper;
+        }
+
+        // Refresh pipeline
+        async function refreshPipeline() {
+            if (!controller || !controller.isConnected) {
+                log('Not connected to GLaMS system', 'error');
+                return;
+            }
+
+            try {
+                log('Refreshing pipeline...');
+                elements.manipulatorsPanel.innerHTML = '<div style="text-align: center; padding: 20px; color: #a0a0a0;">Loading...</div>';
+
+                const fetchedManipulators = await controller.getManipulators();
+                manipulators = fetchedManipulators;
+
+                log(`Found ${manipulators.length} manipulator(s)`, 'success');
+
+                // Clear and rebuild manipulators panel
+                elements.manipulatorsPanel.innerHTML = '';
+
+                if (manipulators.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #718096;">
+                            <h3>No manipulators found</h3>
+                            <p>The pipeline appears to be empty. Add some manipulators to GLaMS to see them here.</p>
+                        </div>
+                    `;
+                    elements.manipulatorsPanel.appendChild(emptyState);
+                } else {
+                    // Create cards for each manipulator
+                    for (const manipulator of manipulators) {
+                        const card = await createManipulatorCard(manipulator);
+                        elements.manipulatorsPanel.appendChild(card);
+                    }
+                }
+
+                updateStats();
+
+            } catch (error) {
+                log(`Failed to refresh pipeline: ${error.message}`, 'error');
+                elements.manipulatorsPanel.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        <h3>Failed to load pipeline</h3>
+                        <p>Error: ${error.message}</p>
+                        <button class="button" onclick="refreshPipeline()" style="margin-top: 15px;">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Connect to GLaMS
+        async function connect() {
+            const roomName = elements.roomName.value.trim();
+            const method = elements.connectionMethod.value;
+
+            if (!roomName) {
+                log('Please enter a room name', 'error');
+                return;
+            }
+
+            try {
+                log(`Connecting to room "${roomName}" via ${method}...`);
+
+                // Create controller with callbacks
+                controller = new GLaMSController({
+                    onConnect: (info) => {
+                        log(`Connected: ${info}`, 'success');
+                        updateConnectionStatus(true);
+                        refreshPipeline();
+                    },
+                    onDisconnect: (reason) => {
+                        log(`Disconnected: ${reason}`, 'error');
+                        updateConnectionStatus(false);
+                        manipulators = [];
+                        elements.manipulatorsPanel.innerHTML = '';
+                        updateStats();
+                    },
+                    onError: (error) => {
+                        log(`Connection error: ${error}`, 'error');
+                        updateConnectionStatus(false);
+                    },
+                    onMessage: (message) => {
+                        log(`Received message: ${JSON.stringify(message)}`);
+                    }
+                });
+
+                await controller.connect(roomName, method);
+
+            } catch (error) {
+                log(`Connection failed: ${error.message}`, 'error');
+                updateConnectionStatus(false);
+                controller = null;
+            }
+        }
+
+        // Disconnect from GLaMS
+        function disconnect() {
+            if (controller) {
+                controller.disconnect();
+                controller = null;
+            }
+            updateConnectionStatus(false);
+            manipulators = [];
+            elements.manipulatorsPanel.innerHTML = '';
+            updateStats();
+            log('Disconnected from GLaMS', 'success');
+        }
+
+        // Make functions available globally for button onclick handlers
+        window.refreshPipeline = refreshPipeline;
+
+        // Event listeners
+        elements.connectBtn.addEventListener('click', connect);
+        elements.refreshBtn.addEventListener('click', refreshPipeline);
+        elements.disconnectBtn.addEventListener('click', disconnect);
+
+        // Allow Enter key to connect
+        elements.roomName.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !elements.connectBtn.disabled) {
+                connect();
+            }
+        });
+
+        // Initialize
+        log('GLaMS Controller Interface ready');
+        updateConnectionStatus(false);
+        updateStats();
+    </script>
+</body>
+
+</html>
