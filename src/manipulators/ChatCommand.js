@@ -310,10 +310,10 @@ export class ChatCommand extends BaseManipulator {
 			return false;
 		}
 
-		// Disconnect if already connected
-		if (this.ws) {
-			this.disconnect();
-		}
+		// Disconnect if already connected to a different channel
+//		if (this.ws && (this.channel != channel)) {
+//			this.disconnect();
+//		}
 
 		this.channel = channel.toLowerCase().replace('#', '');
 		this.manualDisconnect = false; // Reset manual disconnect flag
@@ -505,6 +505,10 @@ export class ChatCommand extends BaseManipulator {
 	_processMessage(username, message) {
 		// Only process if we have an active config
 		if (!this.activeConfig) {
+			return;
+		}
+		// Only process if active
+		if (!this.enabled) {
 			return;
 		}
 		const foundKeywords = [];

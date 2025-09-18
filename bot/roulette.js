@@ -113,12 +113,13 @@ class RouletteWheel {
 			if (label) {
 				const mid = start + slice / 2;
 				this.ctx.save();
-				const textRadius = this.radius * 0.70;
+				const textRadius = this.radius * 0.95; // Very close to edge
 				this.ctx.translate(Math.cos(mid) * textRadius, Math.sin(mid) * textRadius);
 
+				// Keep text tangent to the circle but left-aligned
 				this.ctx.rotate(mid + Math.PI / 2 + this.config.labelRotateExtra);
 
-				this.ctx.textAlign = 'center';
+				this.ctx.textAlign = 'start'; // 'start' respects text direction
 				this.ctx.textBaseline = 'middle';
 				this.ctx.font = `400 ${Math.max(12, Math.min(20, this.radius * 0.06))}px Inter, ui-sans-serif`;
 				this.ctx.lineWidth = 4;
@@ -128,6 +129,7 @@ class RouletteWheel {
 				this.ctx.fillText(label, 0, 0);
 				this.ctx.restore();
 			}
+
 		}
 
 		// Rim
@@ -413,6 +415,17 @@ class RouletteApp {
 		if (this.elements.removeBtn) this.elements.removeBtn.disabled = true;
 	}
 
+	// Simple timeout wrapper - add this method to your RouletteApp class
+	withTimeout(promise, timeoutMs = 10000) {
+		return Promise.race([
+			promise,
+			new Promise((_, reject) =>
+				setTimeout(() => reject(new Error('timeout')), timeoutMs)
+			)
+		]);
+	}
+
+	// Replace your existing executeCurrent method
 	async executeCurrent() {
 		if (!this.connectionManager.isConnected) return;
 
@@ -427,7 +440,8 @@ class RouletteApp {
 		execBtn.textContent = 'Executing…';
 
 		try {
-			for (const action of segment.actions || []) {
+			const actions = segment.actions || [];
+			for (const action of actions) {
 				await this.connectionManager.executeAction(
 					action.manipulatorId,
 					action.actionName,
@@ -436,13 +450,15 @@ class RouletteApp {
 				await new Promise(r => setTimeout(r, 100));
 			}
 		} catch (e) {
-			console.error('Execute failed', e);
-		} finally {
+			console.warn('Execute failed:', e.message);
+		}
+		finally {
 			execBtn.textContent = oldText;
 			execBtn.disabled = false;
 		}
 	}
 
+	// Replace your existing stopAll method
 	async stopAll() {
 		if (!this.connectionManager.isConnected) return;
 
@@ -454,12 +470,12 @@ class RouletteApp {
 		stopBtn.textContent = 'Stopping…';
 
 		try {
-			await this.connectionManager.disableAllManipulators();
+			await this.connectionManager.disableAllManipulators().catch(e => console.warn('Disable failed:', e.message));
 			await new Promise(r => setTimeout(r, 100));
-			await this.connectionManager.resetManipulatorConfigs();
-			await new Promise(r => setTimeout(r, 100));
+			await this.connectionManager.resetManipulatorConfigs().catch(e => console.warn('Reset failed:', e.message));
 		} catch (e) {
-			console.error('Execute failed', e);
+			// Just log it and move on
+			console.warn('Stop timed out or failed:', e.message);
 		} finally {
 			stopBtn.textContent = oldText;
 			stopBtn.disabled = false;

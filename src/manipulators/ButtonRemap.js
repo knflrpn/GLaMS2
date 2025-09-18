@@ -222,6 +222,21 @@ export class ButtonRemap extends BaseManipulator {
 			],
 			handler: (params) => this.swapButtons(params.button1, params.button2)
 		});
+
+		this.registerAction({
+			name: 'shuffleMappings',
+			displayName: 'Shuffle Mappings',
+			description: 'Randomly shuffle N button mappings',
+			parameters: [
+				{
+					name: 'count',
+					type: 'number',
+					description: 'Number of buttons to shuffle (2-14)',
+					required: true
+				}
+			],
+			handler: (params) => this.shuffleMappings(params.count)
+		});
 	}
 
 	/**
@@ -406,6 +421,94 @@ export class ButtonRemap extends BaseManipulator {
 	}
 
 	/**
+ * Randomly shuffle N button mappings such that no button maps to itself
+ * @param {number} count - Number of buttons to shuffle (2-14)
+ */
+	shuffleMappings(count) {
+		if (!Number.isInteger(count) || count < 2 || count > this.buttons.length) {
+			throw new Error(`Count must be an integer between 2 and ${this.buttons.length}`);
+		}
+
+		// Choose random subset of buttons
+		const shuffledButtons = [...this.buttons]
+			.sort(() => Math.random() - 0.5)
+			.slice(0, count);
+
+		// Get current mappings for these buttons
+		const currentMappings = shuffledButtons.map(button =>
+			this.mappings.get(button) ? Array.from(this.mappings.get(button)) : []
+		);
+
+		// Generate derangement (permutation where no element is in its original position)
+		const permutation = this._generateDerangement(shuffledButtons);
+
+		// Apply the shuffled mappings
+		shuffledButtons.forEach((button, index) => {
+			const newMappings = currentMappings[permutation[index]];
+			if (newMappings.length > 0) {
+				this.mappings.set(button, new Set(newMappings));
+			} else {
+				this.mappings.delete(button);
+			}
+		});
+
+		// Update UI for affected buttons
+		shuffledButtons.forEach(button => {
+			this._updateGridRow(button);
+		});
+
+		this.log(`Shuffled ${count} button mappings: [${shuffledButtons.join(', ')}]`);
+		return shuffledButtons;
+	}
+
+	/**
+	 * Generate a derangement (permutation where no element appears in its original position)
+	 * @param {Array} array - Array to generate derangement indices for
+	 * @returns {Array} Array of indices representing the derangement
+	 */
+	_generateDerangement(array) {
+		const n = array.length;
+
+		if (n === 1) {
+			throw new Error('Cannot create derangement of single element');
+		}
+
+		let attempts = 0;
+		const maxAttempts = 1000;
+
+		while (attempts < maxAttempts) {
+			// Create random permutation
+			const indices = Array.from({ length: n }, (_, i) => i);
+
+			// Fisher-Yates shuffle
+			for (let i = indices.length - 1; i > 0; i--) {
+				const j = Math.floor(Math.random() * (i + 1));
+				[indices[i], indices[j]] = [indices[j], indices[i]];
+			}
+
+			// Check if it's a valid derangement (no element in original position)
+			const isDerangement = indices.every((newIndex, originalIndex) =>
+				newIndex !== originalIndex
+			);
+
+			if (isDerangement) {
+				return indices;
+			}
+
+			attempts++;
+		}
+
+		// Fallback: force a simple derangement for small arrays
+		if (n === 2) {
+			return [1, 0];
+		}
+
+		// For larger arrays, create a cycle that guarantees derangement
+		const indices = Array.from({ length: n }, (_, i) => (i + 1) % n);
+		return indices;
+	}
+
+	/**
 	 * Update a single grid cell
 	 * @param {string} input - Input button name
 	 * @param {string} output - Output button name
@@ -489,8 +592,34 @@ export class ButtonRemap extends BaseManipulator {
 			this.executeAction('clearAllMappings');
 		});
 
+		const shuffleContainer = document.createElement('div');
+		shuffleContainer.className = 'remap-shuffle-container';
+
+		const shuffleInput = document.createElement('input');
+		shuffleInput.type = 'number';
+		shuffleInput.min = '2';
+		shuffleInput.max = this.buttons.length.toString();
+		shuffleInput.value = '4';
+		shuffleInput.className = 'remap-shuffle-input';
+		shuffleInput.title = 'Number of buttons to shuffle';
+
+		const shuffleBtn = document.createElement('button');
+		shuffleBtn.textContent = 'Shuffle';
+		shuffleBtn.className = 'button remap-small';
+		shuffleBtn.title = 'Randomly shuffle N button mappings';
+		shuffleBtn.addEventListener('click', () => {
+			const count = parseInt(shuffleInput.value);
+			if (count >= 2 && count <= this.buttons.length) {
+				this.executeAction('shuffleMappings', { count });
+			}
+		});
+
+		shuffleContainer.appendChild(shuffleBtn);
+		shuffleContainer.appendChild(shuffleInput);
+
 		quickActions.appendChild(identityBtn);
 		quickActions.appendChild(clearBtn);
+		quickActions.appendChild(shuffleContainer);
 
 		// Grid container
 		this._gridContainer = document.createElement('div');

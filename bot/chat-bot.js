@@ -106,7 +106,6 @@ class ConfigManager {
 				globalSettings: {
 					globalCooldown: CONFIG.DEFAULT_VALUES.GLOBAL_COOLDOWN,
 					globalStrategyMinTime: CONFIG.DEFAULT_VALUES.GLOBAL_STRATEGY_MIN_TIME,
-					manipulatorId: CONFIG.DEFAULT_VALUES.MANIPULATOR_ID
 				}
 			};
 
@@ -294,7 +293,6 @@ class BotRunner {
 		this.glamsManager = glamsManager;
 		this.logger = logger;
 		this.isRunning = false;
-		this.manipulatorId = CONFIG.DEFAULT_VALUES.MANIPULATOR_ID;
 		this.strategyBox = null;
 		this.messageBox = null;
 	}
@@ -326,7 +324,7 @@ class BotRunner {
 			try {
 				const message = this.bot.generateMessage();
 				if (message && message.text) {
-					this.glamsManager.sendMessage(message.text, this.manipulatorId);
+					this.glamsManager.sendMessage(message.text, this.bot.manipulatorID);
 					if (this.strategyBox) this.strategyBox.innerHTML = this.bot.currentStrategy.name;
 					if (this.messageBox) this.messageBox.innerHTML = this.bot.lastMessage;
 				}
@@ -336,10 +334,6 @@ class BotRunner {
 			}
 			requestAnimationFrame(() => this.generateAndSendMessage());
 		}
-	}
-
-	setManipulatorId(id) {
-		this.manipulatorId = id || CONFIG.DEFAULT_VALUES.MANIPULATOR_ID;
 	}
 
 	setFeedbackBoxes(strategyBox, messageBox) {
@@ -966,7 +960,7 @@ class BotConfigInterface {
 	updateGlobalSettingsForm() {
 		DOMUtils.setInputValue('globalCooldown', this.bot.globalCooldown);
 		DOMUtils.setInputValue('globalStrategyMinTime', this.bot.globalStrategyMinTime);
-		DOMUtils.setInputValue('manipulatorId', this.botRunner.manipulatorId);
+		DOMUtils.setInputValue('manipulatorId', this.botRunner.bot.manipulatorID);
 	}
 
 	updateConnectionUI() {
@@ -1102,7 +1096,7 @@ class BotConfigInterface {
 		// Update bot runner settings
 		const manipulatorId = DOMUtils.getInputValue('manipulatorId').trim() || CONFIG.DEFAULT_VALUES.MANIPULATOR_ID;
 
-		this.botRunner.setManipulatorId(manipulatorId);
+		this.botRunner.bot.manipulatorID = manipulatorId;
 
 		this.configManager.autoSave(); // Auto-save global settings
 		this.updateDisplay();

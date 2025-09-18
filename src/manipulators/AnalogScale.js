@@ -69,7 +69,7 @@ export class AnalogScale extends BaseManipulator {
 				{
 					name: 'scale',
 					type: 'number',
-					description: 'Scale factor (0-1)',
+					description: 'Scale factor (-1 to 2)',
 					required: true,
 					default: 1.0
 				}
@@ -85,7 +85,7 @@ export class AnalogScale extends BaseManipulator {
 				{
 					name: 'scale',
 					type: 'number',
-					description: 'Scale factor (0-1)',
+					description: 'Scale factor (-1 to 2)',
 					required: true,
 					default: 1.0
 				}
@@ -101,7 +101,7 @@ export class AnalogScale extends BaseManipulator {
 				{
 					name: 'scale',
 					type: 'number',
-					description: 'Scale factor (0-1)',
+					description: 'Scale factor (-1 to 2)',
 					required: true,
 					default: 1.0
 				}
@@ -117,7 +117,7 @@ export class AnalogScale extends BaseManipulator {
 				{
 					name: 'scale',
 					type: 'number',
-					description: 'Scale factor (0-1)',
+					description: 'Scale factor (-1 to 2)',
 					required: true,
 					default: 1.0
 				}
@@ -133,7 +133,7 @@ export class AnalogScale extends BaseManipulator {
 				{
 					name: 'scale',
 					type: 'number',
-					description: 'Scale factor to apply to all axes (0-1)',
+					description: 'Scale factor to apply to all axes (-1 to 2)',
 					required: true,
 					default: 1.0
 				}
@@ -151,10 +151,10 @@ export class AnalogScale extends BaseManipulator {
 
 	/**
 	 * Set left stick X axis scale
-	 * @param {number} scale - Scale factor (0-2)
+	 * @param {number} scale - Scale factor (-1 to 2)
 	 */
 	setLeftXScale(scale) {
-		this.leftXScale = Math.max(0, Math.min(2, scale));
+		this.leftXScale = Math.max(-1, Math.min(2, scale));
 		if (this._leftXSlider) {
 			this._leftXSlider.value = this.leftXScale;
 		}
@@ -167,10 +167,10 @@ export class AnalogScale extends BaseManipulator {
 
 	/**
 	 * Set left stick Y axis scale
-	 * @param {number} scale - Scale factor (0-2)
+	 * @param {number} scale - Scale factor (-1 to 2)
 	 */
 	setLeftYScale(scale) {
-		this.leftYScale = Math.max(0, Math.min(2, scale));
+		this.leftYScale = Math.max(-1, Math.min(2, scale));
 		if (this._leftYSlider) {
 			this._leftYSlider.value = this.leftYScale;
 		}
@@ -183,10 +183,10 @@ export class AnalogScale extends BaseManipulator {
 
 	/**
 	 * Set right stick X axis scale
-	 * @param {number} scale - Scale factor (0-2)
+	 * @param {number} scale - Scale factor (-1 to 2)
 	 */
 	setRightXScale(scale) {
-		this.rightXScale = Math.max(0, Math.min(2, scale));
+		this.rightXScale = Math.max(-1, Math.min(2, scale));
 		if (this._rightXSlider) {
 			this._rightXSlider.value = this.rightXScale;
 		}
@@ -199,10 +199,10 @@ export class AnalogScale extends BaseManipulator {
 
 	/**
 	 * Set right stick Y axis scale
-	 * @param {number} scale - Scale factor (0-2)
+	 * @param {number} scale - Scale factor (-1 to 2)
 	 */
 	setRightYScale(scale) {
-		this.rightYScale = Math.max(0, Math.min(2, scale));
+		this.rightYScale = Math.max(-1, Math.min(2, scale));
 		if (this._rightYSlider) {
 			this._rightYSlider.value = this.rightYScale;
 		}
@@ -215,7 +215,7 @@ export class AnalogScale extends BaseManipulator {
 
 	/**
 	 * Set all scale factors to the same value
-	 * @param {number} scale - Scale factor (0-2)
+	 * @param {number} scale - Scale factor (-1 to 2)
 	 */
 	setAllScales(scale) {
 		this.setLeftXScale(scale);
@@ -352,7 +352,7 @@ export class AnalogScale extends BaseManipulator {
 
 		const slider = document.createElement('input');
 		slider.type = 'range';
-		slider.min = '0';
+		slider.min = '-1';
 		slider.max = '2';
 		slider.step = '0.05';
 		slider.value = initialValue;

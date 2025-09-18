@@ -470,9 +470,9 @@
 
 				// Thumbstick buttons require unique handling.
 				const leftThumbInner = innerState && innerState.digital && innerState.digital['buttonThumbL'];
-				const rightThumbInner = innerState && innerState.digital && innerState.digital['buttonThumbL'];
+				const rightThumbInner = innerState && innerState.digital && innerState.digital['buttonThumbR'];
 				const leftThumbOuter = outerState && outerState.digital && outerState.digital['buttonThumbL'];
-				const rightThumbOuter = outerState && outerState.digital && outerState.digital['buttonThumbL'];
+				const rightThumbOuter = outerState && outerState.digital && outerState.digital['buttonThumbR'];
 
 				if (leftThumbInner) this.updateButtonColors('buttonThumbL', this.colors.inner, this.colors.inner);
 				else this.updateButtonColors('buttonThumbL', this.colors.base, this.colors.base);

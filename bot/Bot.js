@@ -18,6 +18,9 @@ class Bot {
 		this.globalCooldown = config.globalCooldown || 100;
 		this.groupCooldowns = new Map(); // groupName -> lastUsedTime
 
+		// Communication
+		this.manipulatorID = "ChatCommand-1"
+
 		// Statistics
 		this.stats = {
 			messagesGenerated: 0,
@@ -224,6 +227,7 @@ class Bot {
 			globalSettings: {
 				globalCooldown: this.globalCooldown,
 				globalStrategyMinTime: this.globalStrategyMinTime,
+				manipulatorID: this.manipulatorID
 			}
 		};
 	}

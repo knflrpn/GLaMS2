@@ -25,7 +25,7 @@ export class GLaMSController {
 
 		// Response handling
 		this.pendingRequests = new Map();
-		this.requestTimeout = options.requestTimeout || 5000; // 5 seconds
+		this.requestTimeout = options.requestTimeout || 2000; // 2 seconds
 		this.nextRequestId = 1;
 
 		// Caching
@@ -40,7 +40,7 @@ export class GLaMSController {
 		// Auto-reconnection
 		this.autoReconnect = options.autoReconnect !== false;
 		this.reconnectAttempts = 0;
-		this.maxReconnectAttempts = options.maxReconnectAttempts || 5;
+		this.maxReconnectAttempts = options.maxReconnectAttempts || 2;
 		this.reconnectDelay = options.reconnectDelay || 1000;
 		this.reconnectTimer = null;
 
@@ -157,8 +157,17 @@ export class GLaMSController {
 			this.stats.messagesSent++;
 			this.emit('messageSent', messageWithId);
 
-			return expectResponse ? await responsePromise : null;
+			if (expectResponse) {
+				const response = await responsePromise;
+				// If it was a timeout, just return null instead of throwing
+				if (response && response.error === 'timeout') {
+					console.warn(`Request timed out: ${messageWithId.requestId}`);
+					return null;
+				}
+				return response;
+			}
 
+			return null;
 		} catch (error) {
 			this.stats.errors++;
 			this.stats.lastError = error.message;
@@ -806,7 +815,8 @@ export class GLaMSController {
 		return new Promise((resolve, reject) => {
 			const timeout = setTimeout(() => {
 				this.pendingRequests.delete(requestId);
-				reject(new Error(`Request timeout: ${requestId}`));
+				// Don't reject - just resolve with a timeout indicator
+				resolve({ error: 'timeout', requestId });
 			}, this.requestTimeout);
 
 			this.pendingRequests.set(requestId, {
