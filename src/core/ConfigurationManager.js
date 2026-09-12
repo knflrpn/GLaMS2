@@ -375,7 +375,7 @@ export class ConfigurationManager {
 		// Update UI controls
 		this.uiManager.setInputValue('broadcastEnabled', broadcastConfig.enabled !== false);
 		this.uiManager.setInputValue('innerSnapshotPosition', broadcastConfig.innerSnapshotPosition || 0);
-		this.uiManager.setInputValue('outerSnapshotPosition', broadcastConfig.outerSnapshotPosition || 10);
+		this.uiManager.setInputValue('outerSnapshotPosition', broadcastConfig.outerSnapshotPosition || 12);
 
 		// Apply to pipeline
 		if (this.onLoadBroadcast) {

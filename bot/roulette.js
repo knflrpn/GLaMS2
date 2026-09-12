@@ -8,6 +8,10 @@ class RouletteWheel {
 	constructor(canvasId, options = {}) {
 		this.canvas = document.getElementById(canvasId);
 		this.ctx = this.canvas.getContext('2d');
+		this.offscreenCanvas = null;
+		this.offscreenCtx = null;
+		this.wheelImageCache = null;
+		this.lastSegmentsHash = null;
 		this.segments = [];
 		this.currentIndex = -1;
 		this.currentAngle = 0;
@@ -42,18 +46,185 @@ class RouletteWheel {
 
 		this.logicalSize = Math.min(rect.width, rect.height);
 		this.radius = this.logicalSize * 0.45;
+
+		// Setup offscreen canvas with same dimensions
+		this.setupOffscreenCanvas(rect.width, rect.height, dpr);
+
 		this.drawWheel();
 	}
 
+	setupOffscreenCanvas(width, height, dpr) {
+		this.offscreenCanvas = document.createElement('canvas');
+		this.offscreenCanvas.width = Math.round(width * dpr);
+		this.offscreenCanvas.height = Math.round(height * dpr);
+		this.offscreenCtx = this.offscreenCanvas.getContext('2d');
+		this.offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
+		this.offscreenCtx.scale(dpr, dpr);
+
+		// Invalidate cache when canvas size changes
+		this.wheelImageCache = null;
+		this.lastSegmentsHash = null;
+	}
+
+	getSegmentsHash() {
+		if (this.segments.length === 0) return 'empty';
+
+		return this.segments.map(seg =>
+			`${seg.displayName || ''}`
+		).join('|');
+	}
+
+	preRenderWheel() {
+		if (!this.offscreenCanvas || !this.offscreenCtx) return;
+
+		const w = this.offscreenCanvas.width / (window.devicePixelRatio || 1);
+		const h = this.offscreenCanvas.height / (window.devicePixelRatio || 1);
+		const cx = w / 2, cy = h / 2;
+
+		// Clear offscreen canvas
+		this.offscreenCtx.clearRect(0, 0, w, h);
+		this.offscreenCtx.save();
+		this.offscreenCtx.translate(cx, cy);
+
+		if (this.segments.length === 0) {
+			this.offscreenCtx.restore();
+			return;
+		}
+
+		const slice = (Math.PI * 2) / this.segments.length;
+
+		// Draw segments without rotation (we'll rotate when drawing to main canvas)
+		for (let i = 0; i < this.segments.length; i++) {
+			const start = i * slice - Math.PI / 2;
+			const end = start + slice;
+
+			// Fill
+			this.offscreenCtx.beginPath();
+			this.offscreenCtx.moveTo(0, 0);
+			this.offscreenCtx.arc(0, 0, this.radius, start, end);
+			this.offscreenCtx.closePath();
+			this.offscreenCtx.fillStyle = COLORS[i % COLORS.length];
+			this.offscreenCtx.fill();
+
+			// Separator
+			this.offscreenCtx.strokeStyle = 'rgba(255,255,255,.35)';
+			this.offscreenCtx.lineWidth = 2;
+			this.offscreenCtx.beginPath();
+			this.offscreenCtx.moveTo(0, 0);
+			this.offscreenCtx.lineTo(Math.cos(start) * this.radius, Math.sin(start) * this.radius);
+			this.offscreenCtx.stroke();
+
+			// Text
+			const label = (this.segments[i].displayName ?? '').toString();
+			if (label) {
+				const mid = start + slice / 2;
+				this.offscreenCtx.save();
+				const textRadius = this.radius * 0.95;
+				this.offscreenCtx.translate(Math.cos(mid) * textRadius, Math.sin(mid) * textRadius);
+				this.offscreenCtx.rotate(mid + Math.PI / 2 + this.config.labelRotateExtra);
+
+				this.offscreenCtx.textAlign = 'start';
+				this.offscreenCtx.textBaseline = 'middle';
+
+
+
+				const maxTextWidth = this.radius * 0.8; // Available width for text
+				const baseSize = Math.max(14, Math.min(20, this.radius * 0.06));
+				let fontSize = baseSize;
+				let displayText = label;
+
+				// Measure and scale down if needed
+				this.offscreenCtx.font = `400 ${fontSize}px Inter, ui-sans-serif`;
+				let textWidth = this.offscreenCtx.measureText(displayText).width;
+
+				while (textWidth > maxTextWidth && fontSize > 14) {
+					fontSize -= 1;
+					this.offscreenCtx.font = `400 ${fontSize}px Inter, ui-sans-serif`;
+					textWidth = this.offscreenCtx.measureText(displayText).width;
+				}
+
+				// If we've hit the minimum font size and text is still too wide, truncate
+				if (textWidth > maxTextWidth && fontSize <= 14) {
+					// Binary search for the optimal truncation point
+					let left = 0;
+					let right = label.length;
+					let bestLength = 0;
+
+					while (left <= right) {
+						const mid = Math.floor((left + right) / 2);
+						const testText = label.substring(0, mid) + (mid < label.length ? '…' : '');
+						const testWidth = this.offscreenCtx.measureText(testText).width;
+
+						if (testWidth <= maxTextWidth) {
+							bestLength = mid;
+							left = mid + 1;
+						} else {
+							right = mid - 1;
+						}
+					}
+
+					displayText = bestLength > 0 ?
+						label.substring(0, bestLength) + (bestLength < label.length ? '…' : '') :
+						'…';
+				}
+
+
+
+				this.offscreenCtx.lineWidth = 4;
+				this.offscreenCtx.strokeStyle = 'rgba(0,0,0,.8)';
+				this.offscreenCtx.strokeText(displayText, 0, 0);
+				this.offscreenCtx.fillStyle = '#fff';
+				this.offscreenCtx.fillText(displayText, 0, 0);
+				this.offscreenCtx.restore();
+			}
+		}
+
+		// Rim
+		this.offscreenCtx.beginPath();
+		this.offscreenCtx.arc(0, 0, this.radius, 0, Math.PI * 2);
+		this.offscreenCtx.lineWidth = 10;
+		this.offscreenCtx.strokeStyle = 'rgba(255,255,255,.85)';
+		this.offscreenCtx.stroke();
+
+		this.offscreenCtx.restore();
+	}
+
+	shuffleArray(array) {
+		const shuffled = [...array]; // Create a copy to avoid mutating the original
+		for (let i = shuffled.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+		}
+		return shuffled;
+	}
+
 	loadSegments(segmentsData) {
-		this.segments = segmentsData || [];
+		// Shuffle the segments before loading them
+		this.segments = segmentsData && segmentsData.length > 0 ?
+			this.shuffleArray(segmentsData) : [];
+
 		const hasSegments = this.segments.length > 0;
 
 		if (hasSegments) {
 			this.currentIndex = 0;
+
+			// Calculate the angle to position the first segment at the pointer (-π/2)
+			const TWO_PI = Math.PI * 2;
+			const sliceSize = TWO_PI / this.segments.length;
+
+			// The center angle of the first segment (index 0) in wheel coordinates
+			const firstSegmentCenterAngle = 0 * sliceSize + sliceSize / 2; // This is just sliceSize / 2
+
+			// Set the angle so the first segment's center aligns with the pointer at -π/2
+			this.currentAngle = -Math.PI / 2 - firstSegmentCenterAngle;
 		} else {
 			this.currentIndex = -1;
+			this.currentAngle = 0; // Reset angle when no segments
 		}
+
+		// Invalidate cache when segments change
+		this.wheelImageCache = null;
+		this.lastSegmentsHash = null;
 
 		this.onSegmentsUpdated(this.segments, hasSegments);
 		this.drawWheel();
@@ -63,13 +234,14 @@ class RouletteWheel {
 	drawWheel() {
 		const w = this.canvas.getBoundingClientRect().width;
 		const h = this.canvas.getBoundingClientRect().height;
-		this.ctx.clearRect(0, 0, w, h);
-
 		const cx = w / 2, cy = h / 2;
+
+		// Clear main canvas
+		this.ctx.clearRect(0, 0, w, h);
 		this.ctx.save();
 		this.ctx.translate(cx, cy);
 
-		// Glow ring
+		// Draw glow ring (this is dynamic and cheap to render)
 		this.ctx.beginPath();
 		this.ctx.arc(0, 0, this.radius + 14, 0, Math.PI * 2);
 		const g1 = this.ctx.createRadialGradient(0, 0, this.radius, 0, 0, this.radius + 40);
@@ -83,61 +255,23 @@ class RouletteWheel {
 			return;
 		}
 
-		const slice = (Math.PI * 2) / this.segments.length;
-
-		// Rotate the whole wheel by currentAngle
-		this.ctx.rotate(this.currentAngle);
-
-		for (let i = 0; i < this.segments.length; i++) {
-			const start = i * slice - Math.PI / 2;
-			const end = start + slice;
-
-			// Fill
-			this.ctx.beginPath();
-			this.ctx.moveTo(0, 0);
-			this.ctx.arc(0, 0, this.radius, start, end);
-			this.ctx.closePath();
-			this.ctx.fillStyle = COLORS[i % COLORS.length];
-			this.ctx.fill();
-
-			// Separator
-			this.ctx.strokeStyle = 'rgba(255,255,255,.35)';
-			this.ctx.lineWidth = 2;
-			this.ctx.beginPath();
-			this.ctx.moveTo(0, 0);
-			this.ctx.lineTo(Math.cos(start) * this.radius, Math.sin(start) * this.radius);
-			this.ctx.stroke();
-
-			// Text
-			const label = (this.segments[i].displayName ?? '').toString();
-			if (label) {
-				const mid = start + slice / 2;
-				this.ctx.save();
-				const textRadius = this.radius * 0.95; // Very close to edge
-				this.ctx.translate(Math.cos(mid) * textRadius, Math.sin(mid) * textRadius);
-
-				// Keep text tangent to the circle but left-aligned
-				this.ctx.rotate(mid + Math.PI / 2 + this.config.labelRotateExtra);
-
-				this.ctx.textAlign = 'start'; // 'start' respects text direction
-				this.ctx.textBaseline = 'middle';
-				this.ctx.font = `400 ${Math.max(12, Math.min(20, this.radius * 0.06))}px Inter, ui-sans-serif`;
-				this.ctx.lineWidth = 4;
-				this.ctx.strokeStyle = 'rgba(0,0,0,.8)';
-				this.ctx.strokeText(label, 0, 0);
-				this.ctx.fillStyle = '#fff';
-				this.ctx.fillText(label, 0, 0);
-				this.ctx.restore();
-			}
-
+		// Check if we need to regenerate the cached wheel image
+		const currentHash = this.getSegmentsHash();
+		if (!this.wheelImageCache || this.lastSegmentsHash !== currentHash) {
+			this.preRenderWheel();
+			this.wheelImageCache = this.offscreenCanvas;
+			this.lastSegmentsHash = currentHash;
 		}
 
-		// Rim
-		this.ctx.beginPath();
-		this.ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-		this.ctx.lineWidth = 10;
-		this.ctx.strokeStyle = 'rgba(255,255,255,.85)';
-		this.ctx.stroke();
+		// Draw the cached wheel image with rotation
+		if (this.wheelImageCache) {
+			this.ctx.rotate(this.currentAngle);
+			this.ctx.drawImage(
+				this.wheelImageCache,
+				-cx, -cy, // Draw centered
+				w, h
+			);
+		}
 
 		this.ctx.restore();
 	}
@@ -182,7 +316,7 @@ class RouletteWheel {
 		// Winner center in wheel coordinates
 		const winnerCenterAngle = winnerIndex * slice + slice / 2;
 
-		// Base: land with winner at top (-π/2)
+		// Base: land with winner at left (-π/2)
 		const extraTurns = this.config.spinMinTurns + Math.random() * (this.config.spinMaxTurns - this.config.spinMinTurns);
 		let target = this.currentAngle + (-Math.PI / 2 - winnerCenterAngle) + TWO_PI * extraTurns;
 
@@ -223,6 +357,10 @@ class RouletteWheel {
 	removeCurrentSegment() {
 		if (this.spinning || this.segments.length === 0 || this.currentIndex < 0) return false;
 
+		// Store the current index before removal
+		const removedIndex = this.currentIndex;
+
+		// Remove the segment
 		this.segments.splice(this.currentIndex, 1);
 
 		if (this.segments.length === 0) {
@@ -232,13 +370,29 @@ class RouletteWheel {
 			return true;
 		}
 
-		// Recompute which segment is under the pointer
-		const TWO_PI = Math.PI * 2;
-		const slice = TWO_PI / this.segments.length;
-		const pointerAngle = ((-this.currentAngle % TWO_PI) + TWO_PI) % TWO_PI;
-		let idx = Math.floor((pointerAngle + slice / 2) / slice) % this.segments.length;
+		// Calculate new currentIndex after removal
+		if (removedIndex >= this.segments.length) {
+			// If we removed the last segment, wrap to the first
+			this.currentIndex = 0;
+		} else {
+			// The segment that was after the removed one is now at the same index
+			this.currentIndex = removedIndex;
+		}
 
-		this.currentIndex = Math.min(idx, this.segments.length - 1);
+		// Calculate the angle to position the new current segment at the pointer (-π/2)
+		const TWO_PI = Math.PI * 2;
+		const sliceSize = TWO_PI / this.segments.length;
+
+		// The center angle of the current segment in wheel coordinates
+		const currentSegmentCenterAngle = this.currentIndex * sliceSize + sliceSize / 2;
+
+		// Set the angle so this segment's center aligns with the pointer at -π/2
+		this.currentAngle = -Math.PI / 2 - currentSegmentCenterAngle;
+
+		// Invalidate cache when segments change
+		this.wheelImageCache = null;
+		this.lastSegmentsHash = null;
+
 		this.onSegmentsUpdated(this.segments, true);
 		this.drawWheel();
 		return true;
@@ -246,6 +400,134 @@ class RouletteWheel {
 
 	getCurrentSegment() {
 		return this.currentIndex >= 0 ? this.segments[this.currentIndex] : null;
+	}
+
+	moveNPlaces(n, duration = 500) {
+		// Return false if wheel is spinning or no segments
+		if (this.spinning || this.segments.length === 0) return false;
+
+		// Return early if n is 0
+		if (n === 0) return true;
+
+		this.spinning = true;
+
+		const TWO_PI = Math.PI * 2;
+		const slice = TWO_PI / this.segments.length;
+
+		// Calculate new index (handle wrapping)
+		const newIndex = ((this.currentIndex - n) % this.segments.length + this.segments.length) % this.segments.length;
+
+		// Calculate the angle change needed
+		// Positive n moves clockwise (segments go "backward" in index)
+		// Negative n moves counter-clockwise (segments go "forward" in index)
+		const angleChange = n * slice;
+
+		const startAngle = this.currentAngle;
+		const targetAngle = this.currentAngle + angleChange;
+		const deltaAngle = targetAngle - startAngle;
+
+		const startTime = performance.now();
+
+		// Use a smooth easing function (ease-out)
+		const easing = (t) => 1 - Math.pow(1 - t, 3);
+
+		const animate = (currentTime) => {
+			const elapsed = currentTime - startTime;
+			const progress = Math.min(1, elapsed / duration);
+			const easedProgress = easing(progress);
+
+			// Update current angle
+			this.currentAngle = startAngle + (deltaAngle * easedProgress);
+			this.drawWheel();
+
+			if (progress < 1) {
+				requestAnimationFrame(animate);
+			} else {
+				// Ensure we end at exactly the target angle
+				this.currentAngle = targetAngle;
+				this.currentIndex = newIndex;
+				this.drawWheel();
+				this.spinning = false;
+
+				// Call the spin complete callback if it exists
+				if (this.onSpinComplete) {
+					this.onSpinComplete(this.currentIndex, this.segments[this.currentIndex]);
+				}
+			}
+		};
+
+		requestAnimationFrame(animate);
+		return true;
+	}
+
+}
+
+class RemovedSegmentsManager {
+	constructor() {
+		this.removedSegments = [];
+		this.maxRemoved = 25; // Keep last N removed segments
+	}
+
+	addRemovedSegment(segment) {
+		// Add to beginning of array
+		this.removedSegments.unshift({
+			...segment,
+			removedAt: Date.now()
+		});
+
+		// Keep only the most recent ones
+		if (this.removedSegments.length > this.maxRemoved) {
+			this.removedSegments = this.removedSegments.slice(0, this.maxRemoved);
+		}
+
+		this.renderRemovedSegments();
+	}
+
+	reAddSegment(index) {
+		if (index >= 0 && index < this.removedSegments.length) {
+			const segment = this.removedSegments.splice(index, 1)[0];
+			this.renderRemovedSegments();
+			return segment;
+		}
+		return null;
+	}
+
+	renderRemovedSegments() {
+		const container = document.getElementById('removedItems');
+		const section = document.getElementById('recentlyRemovedSection');
+
+		if (!container || !section) return;
+
+		if (this.removedSegments.length === 0) {
+			section.style.display = 'none';
+			return;
+		}
+
+		section.style.display = 'block';
+		container.innerHTML = '';
+
+		this.removedSegments.forEach((segment, index) => {
+			const item = document.createElement('div');
+			item.className = 'removed-item';
+
+			const name = document.createElement('span');
+			name.className = 'removed-item-name';
+			name.textContent = segment.displayName || 'Unnamed';
+
+			const reAddBtn = document.createElement('button');
+			reAddBtn.className = 'readd-btn';
+			reAddBtn.textContent = 'Re-add';
+			reAddBtn.onclick = () => {
+				const removedSegment = this.reAddSegment(index);
+				if (removedSegment && window.rouletteApp) {
+					window.rouletteApp.reAddSegment(removedSegment);
+				}
+			};
+
+			item.appendChild(name);
+			item.appendChild(reAddBtn);
+			container.appendChild(item);
+		});
 	}
 }
 
@@ -266,6 +548,9 @@ class RouletteApp {
 			onError: (error) => this.updateConnectionStatus(false, error)
 		});
 
+
+		this.removedSegmentsManager = new RemovedSegmentsManager();
+
 		// Get DOM elements
 		this.elements = {
 			connDot: document.getElementById('connDot'),
@@ -276,10 +561,14 @@ class RouletteApp {
 			execBtn: document.getElementById('executeBtn'),
 			stopBtn: document.getElementById('stopBtn'),
 			removeBtn: document.getElementById('removeBtn'),
+			nextBtn: document.getElementById('nextBtn'),
+			prevBtn: document.getElementById('prevBtn'),
 			noSeg: document.getElementById('noSeg'),
 			configTextarea: document.getElementById('configTextarea'),
 			loadConfigBtn: document.getElementById('loadConfigBtn'),
 			configStatus: document.getElementById('configStatus'),
+			newSegmentInput: document.getElementById('newSegmentInput'),
+			addSegmentBtn: document.getElementById('addSegmentBtn'),
 		};
 
 		this.initialize();
@@ -300,10 +589,22 @@ class RouletteApp {
 		this.elements.execBtn?.addEventListener('click', () => this.executeCurrent());
 		this.elements.stopBtn?.addEventListener('click', () => this.stopAll());
 		this.elements.removeBtn?.addEventListener('click', () => this.removeCurrent());
+		this.elements.nextBtn?.addEventListener('click', () => this.moveWheelNPlaces(1));
+		this.elements.prevBtn?.addEventListener('click', () => this.moveWheelNPlaces(-1));
 		this.elements.loadConfigBtn?.addEventListener('click', () => this.loadSegmentsFromTextarea());
+		this.elements.addSegmentBtn?.addEventListener('click', () => this.addNewSegment());
+		this.elements.newSegmentInput?.addEventListener('keypress', (e) => {
+			if (e.key === 'Enter') this.addNewSegment();
+		});
 	}
 
 	loadDefaultConfigToTextarea() {
+		// First try to load from localStorage
+		if (this.loadConfigFromStorage()) {
+			return;
+		}
+
+		// Fall back to default config if nothing in storage
 		try {
 			const configElement = document.getElementById('default-segments-config');
 			if (!configElement || !this.elements.configTextarea) return;
@@ -312,6 +613,67 @@ class RouletteApp {
 			this.elements.configTextarea.value = JSON.stringify(config, null, 2);
 		} catch (e) {
 			console.error('Failed to load default config', e);
+		}
+	}
+
+	saveConfigToStorage() {
+		if (!this.elements.configTextarea) return;
+
+		try {
+			localStorage.setItem('roulette-config', this.elements.configTextarea.value);
+		} catch (e) {
+			console.warn('Failed to save config to localStorage:', e);
+		}
+	}
+
+	loadConfigFromStorage() {
+		try {
+			const saved = localStorage.getItem('roulette-config');
+			if (saved && this.elements.configTextarea) {
+				this.elements.configTextarea.value = saved;
+				return true;
+			}
+		} catch (e) {
+			console.warn('Failed to load config from localStorage:', e);
+		}
+		return false;
+	}
+
+	addSegment(displayName) {
+		if (!displayName || typeof displayName !== 'string') {
+			console.warn('Invalid segment name');
+			return false;
+		}
+
+		try {
+			// Parse current config from textarea
+			const configText = this.elements.configTextarea?.value.trim() || '{"segments":[]}';
+			const config = JSON.parse(configText);
+
+			// Ensure segments array exists
+			if (!config.segments) {
+				config.segments = [];
+			}
+
+			// Create new segment
+			const newSegment = {
+				displayName: displayName.trim(),
+				actions: []
+			};
+
+			// Add to config
+			config.segments.push(newSegment);
+
+			// Update textarea with new config
+			this.elements.configTextarea.value = JSON.stringify(config, null, 2);
+
+			// Reload segments from updated textarea
+			this.loadSegmentsFromTextarea();
+
+			return true;
+		} catch (e) {
+			console.error('Failed to add segment:', e);
+			return false;
 		}
 	}
 
@@ -333,6 +695,11 @@ class RouletteApp {
 				success ? `Loaded ${config.segments?.length || 0} segments` : 'No segments found in config',
 				success ? 'success' : 'error'
 			);
+
+			// Save to localStorage on successful load
+			if (success) {
+				this.saveConfigToStorage();
+			}
 
 			return success;
 		} catch (e) {
@@ -415,7 +782,10 @@ class RouletteApp {
 		if (this.elements.removeBtn) this.elements.removeBtn.disabled = true;
 	}
 
-	// Simple timeout wrapper - add this method to your RouletteApp class
+	moveWheelNPlaces(n, duration = 500) {
+		return this.wheel.moveNPlaces(n, duration);
+	}
+
 	withTimeout(promise, timeoutMs = 10000) {
 		return Promise.race([
 			promise,
@@ -425,7 +795,6 @@ class RouletteApp {
 		]);
 	}
 
-	// Replace your existing executeCurrent method
 	async executeCurrent() {
 		if (!this.connectionManager.isConnected) return;
 
@@ -458,7 +827,6 @@ class RouletteApp {
 		}
 	}
 
-	// Replace your existing stopAll method
 	async stopAll() {
 		if (!this.connectionManager.isConnected) return;
 
@@ -483,7 +851,32 @@ class RouletteApp {
 	}
 
 	removeCurrent() {
+		const currentSegment = this.wheel.getCurrentSegment();
+		if (currentSegment) {
+			// Add to removed segments before removing from wheel
+			this.removedSegmentsManager.addRemovedSegment(currentSegment);
+		}
 		this.wheel.removeCurrentSegment();
+	}
+
+	reAddSegment(segment) {
+		// Insert the segment at a random position
+		const randomIndex = Math.floor(Math.random() * (this.wheel.segments.length + 1));
+		this.wheel.segments.splice(randomIndex, 0, segment);
+
+		// If the wheel currently has a selected segment, we need to update the currentIndex
+		// if the insertion point affects it
+		if (this.wheel.currentIndex >= 0 && randomIndex <= this.wheel.currentIndex) {
+			this.wheel.currentIndex++;
+		}
+
+		// Invalidate the wheel's cache since segments changed
+		this.wheel.wheelImageCache = null;
+		this.wheel.lastSegmentsHash = null;
+
+		// Update the wheel display and UI
+		this.wheel.onSegmentsUpdated(this.wheel.segments, this.wheel.segments.length > 0);
+		this.wheel.drawWheel();
 	}
 
 	async connectToGLaMS() {
@@ -493,6 +886,24 @@ class RouletteApp {
 			console.error('Connection failed', e);
 		}
 	}
+
+	addNewSegment() {
+		if (!this.elements.newSegmentInput) return;
+
+		const segmentName = this.elements.newSegmentInput.value.trim();
+		if (!segmentName) {
+			this.updateConfigStatus('Please enter a segment name', 'error');
+			return;
+		}
+
+		if (this.addSegment(segmentName)) {
+			this.elements.newSegmentInput.value = ''; // Clear input on success
+			this.updateConfigStatus(`Added segment: ${segmentName}`, 'success');
+		} else {
+			this.updateConfigStatus('Failed to add segment', 'error');
+		}
+	}
+
 }
 
 // =======================

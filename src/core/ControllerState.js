@@ -45,6 +45,15 @@ class ControllerState {
 			rightY: 0,
 		};
 
+		// Exact hardware values (-2048 to 2047) to prevent float precision loss
+		this.rawAnalog = {
+			active: false,
+			leftX: 0,
+			leftY: 0,
+			rightX: 0,
+			rightY: 0,
+		};
+
 		// IMU sample: sample of {accelX, accelY, accelZ, gyroX, gyroY, gyroZ}
 		// Acc units are m/s/s and gyro units are rad/s.
 		this.imuSample = { accelX: 0, accelY: 0, accelZ: 9.81, gyroX: 0, gyroY: 0, gyroZ: 0 };
@@ -61,6 +70,9 @@ class ControllerState {
 
 		// Copy analog inputs
 		Object.assign(newState.analog, this.analog);
+
+		// Copy exact raw analog inputs
+		Object.assign(newState.rawAnalog, this.rawAnalog);
 
 		// Copy IMU samples
 		Object.assign(newState.imuSample, this.imuSample);

@@ -11,12 +11,6 @@
 <body>
 	<div class="container">
 		<div class="main-content">
-			<!-- Header -->
-			<div class="header">
-				<h1>Gamepad to SwiCC Interface</h1>
-				<p>Connect your gamepad to SwiCC devices via Web Serial</p>
-			</div>
-
 			<!-- Left Panel - Connection Status -->
 			<div class="left">
 				<div class="stack">
@@ -67,6 +61,28 @@
 						</div>
 					</div>
 
+					<!-- Recording Controls Panel -->
+					<div class="panel" id="recordingPanel">
+						<h2>Recording Controls</h2>
+
+						<div class="broadcast-actions">
+							<button class="button" id="startRecordingBtn" disabled>Start</button>
+							<button class="button danger" id="stopRecordingBtn" disabled>Stop</button>
+							<button class="button" id="readRecordingBtn" disabled>Load to Macro</button>
+						</div>
+
+						<div class="status-grid" style="margin-top: 1rem;">
+							<div class="status-item">
+								<label>Status</label>
+								<div class="value" id="recordingStatus">Stopped</div>
+							</div>
+							<div class="status-item">
+								<label>Buffer Usage</label>
+								<div class="value" id="recordingBufferFill">-</div>
+							</div>
+						</div>
+					</div>
+					
 					<!-- Gamepad Status Panel -->
 					<div class="panel">
 						<h2>
@@ -93,6 +109,7 @@
 							</div>
 						</div>
 					</div>
+
 				</div>
 			</div>
 
@@ -128,12 +145,12 @@
 							<textarea id="macroScript" placeholder="Enter macro script here...
 Example:
 {A} [0.5, 0.0, 0.0, 0.0]
-{} [0.0, 0.0, 0.0, 0.0]
-{B X}
+{} [0.0, 0.0, 0.0, 0.0] 10
+{B X} ; press B and X
 {U L1} [0.0, 0.0, 0.0, 0.0]"></textarea>
 
 							<div class="macro-controls">
-								<button class="button" id="validateMacroBtn">Validate Script</button>
+								<button class="button" id="validateMacroBtn">Validate Script<br/>(see message pane below)</button>
 								<button class="button" id="clearMacroBtn">Clear</button>
 							</div>
 
@@ -143,7 +160,7 @@ Example:
 									<div class="value" id="macroLineCount">0</div>
 								</div>
 								<div class="status-item">
-									<label>Duration</label>
+									<label>Estimated Duration</label>
 									<div class="value" id="macroDuration">0.0s</div>
 								</div>
 							</div>
@@ -152,12 +169,13 @@ Example:
 						<div class="help-box">
 							<strong>Macro Format:</strong>
 							<ul>
-								<li>Each line represents one frame (1/60th second)</li>
-								<li>Buttons: {A B X Y U D L R h c + - L1 L2 L3 R1 R2 R3}</li>
-								<li>Analog sticks: [leftX, leftY, rightX, rightY] (values -1.0 to 1.0)</li>
-								<li>Both buttons and analog values are optional</li>
-								<li>Empty line or {} means no buttons pressed</li>
-								<li>Missing analog values default to neutral (0.0)</li>
+								<li>General format is "{buttons} [analog] frames".</li>
+								<li>Buttons: {A B X Y U D L R h c + - L1 L2 L3 R1 R2 R3}.</li>
+								<li>Analog sticks: [leftX leftY rightX rightY], values -1.0 to 1.0, negative is left and up. Optionally, exact analog stick values can be given as integers -2048 to 2047 in double square brackets.</li>
+								<li>Frames is the number of frames to hold that state.</li>
+								<li>All fields are optional.  Default button state is nothing pressed, default analog sticks is neutral, and default frames is 1.</li>
+								<li>Empty lines are ignored.  Comments can be placed after a semicolon.</li>
+								<li>Loops can be created by labeling a position using angle brackets, e.g. &lt;here&gt;, and jumping back to that label with an at sign, e.g. @here N, where N is the number of times to return to the label.</li>
 							</ul>
 						</div>
 					</div>
@@ -168,13 +186,23 @@ Example:
 						<div class="help-box">
 							<strong>Getting Started:</strong>
 							<ol>
-								<li>Connect a gamepad to your computer</li>
-								<li>Click "Connect SwiCC" and select your serial device</li>
-								<li>Write a macro script and click "Play Macro" to execute it</li>
-								<li>Macro playback temporarily pauses passthrough, then resumes when complete</li>
+								<li>Connect a gamepad to your computer.</li>
+								<li>Click "Connect SwiCC" and select the 2wiCC COM device.</li>
+								<li>If you have VSYNC hardware, set the VSYNC delay value.</li>
+								<li>Write a macro script and click "Play Macro" to execute it.</li>
+							</ol>
+						</div>
+						<div class="help-box">
+							<strong>Recording:</strong>
+							<ol>
+								<li>Press 'Start' to tell the SwiCC to begin recording.</li>
+								<li>Do what you want to do using your gamepad.</li>
+								<li>Press 'Stop' to tell the SwiCC that you are done.</li>
+								<li>Press 'Load to Macro' to transfer the recording to the macro script box.  It will add it to any existing script, so clear the script first if desired.</li>
 							</ol>
 						</div>
 					</div>
+
 				</div>
 			</div>
 

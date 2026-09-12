@@ -222,18 +222,39 @@ class SerialComm {
 		writeHexByte(b2);
 
 		if (includeAnalog) {
-			// local packAxis returns {h,m,l} nibbles
-			const packAxis = v => {
-				const raw = Math.round(v * 0x600 + 0x800);
+			// Helper to pack raw integer into {h,m,l} nibbles
+			const packRaw = raw => {
 				const c = Math.min(0xFFF, Math.max(0, raw));
 				return { h: (c >> 8) & 0xF, m: (c >> 4) & 0xF, l: c & 0xF };
 			};
 
-			// Between standard PC and Switch, X axis stays, Y flips
-			const lx = packAxis(state.analog.leftX);
-			const ly = packAxis(-state.analog.leftY);
-			const rx = packAxis(state.analog.rightX);
-			const ry = packAxis(-state.analog.rightY);
+			let lxRaw, lyRaw, rxRaw, ryRaw;
+
+			if (state.rawAnalog && state.rawAnalog.active) {
+				// Re-center the exact integers back to the hardware 0-4095 scale.
+				// Note: We do NOT invert the Y-axis here because the raw 
+				// recorded integers already represent the native hardware orientation.
+				lxRaw = state.rawAnalog.leftX + 2048;
+				lyRaw = state.rawAnalog.leftY + 2048;
+				rxRaw = state.rawAnalog.rightX + 2048;
+				ryRaw = state.rawAnalog.rightY + 2048;
+			} else {
+				// Fallback to float math: Between standard PC and Switch, X axis stays, Y flips.
+				// Include a small deadzone.
+				if (Math.abs(state.analog.leftX) < 0.05) lxRaw = 2048; else
+					lxRaw = Math.round(state.analog.leftX * 0x600 + 0x800);
+				if (Math.abs(state.analog.leftY) < 0.05) lyRaw = 2048; else
+					lyRaw = Math.round(-state.analog.leftY * 0x600 + 0x800);
+				if (Math.abs(state.analog.rightX) < 0.05) rxRaw = 2048; else
+					rxRaw = Math.round(state.analog.rightX * 0x600 + 0x800);
+				if (Math.abs(state.analog.rightY) < 0.05) ryRaw = 2048; else
+					ryRaw = Math.round(-state.analog.rightY * 0x600 + 0x800);
+			}
+
+			const lx = packRaw(lxRaw);
+			const ly = packRaw(lyRaw);
+			const rx = packRaw(rxRaw);
+			const ry = packRaw(ryRaw);
 
 			// arrange the 6 analog bytes in the required order
 			const analogBytes = [
@@ -506,6 +527,11 @@ export class SwiCCSink {
 		// Buffer state
 		/** @private */ this._queueSize = 1024;
 		/** @private */ this._queueRemaining = 1023;
+
+		// Recording state
+		/** @private */ this._recordSize = 0;
+		/** @private */ this._recordRemaining = 0;
+		/** @private */ this._isRecording = false;
 
 		// bind once so we can remove later
 		this._handlePortDisconnect = this._handlePortDisconnect.bind(this);
@@ -813,6 +839,24 @@ export class SwiCCSink {
 	}
 
 	/**
+	 * Get the size of the recording buffer
+	 * @returns {int}
+	 */
+	get recordSize() { return this._recordSize; }
+
+	/**
+	 * Get the amount remaining of the recording buffer
+	 * @returns {int}
+	 */
+	get recordRemaining() { return this._recordRemaining; }
+
+	/**
+	 * Get the recording status
+	 * @returns {boolean}
+	 */
+	get isRecording() { return this._isRecording; }
+
+	/**
 	 * Manually interrogate the device for ID and version.
 	 * @returns {Promise<{id: string, version: string}>}
 	 */
@@ -974,6 +1018,7 @@ export class SwiCCSink {
 			['GRS', this._handleGrsCommand],
 			['REC', this._handleRecCommand],
 			['GR', this._handleGrCommand],
+			['R', this._handleRCommand],
 			['GQR', this._handleGqrCommand],
 			['GQS', this._handleGqsCommand],
 			// Add more command handlers here as needed
@@ -1021,9 +1066,7 @@ export class SwiCCSink {
 	_handleGrrCommand(message) {
 		const grrMatch = message.match(/^\+GRR\s+([0-9A-Fa-f]{4})$/);
 		if (grrMatch) {
-			const params = grrMatch[1];
-			// Parse GRR parameters here
-
+			this._recordRemaining = parseInt(grrMatch[1], 16);
 			return true;
 		}
 		return false;
@@ -1038,9 +1081,7 @@ export class SwiCCSink {
 	_handleGrsCommand(message) {
 		const grsMatch = message.match(/^\+GRS\s+([0-9A-Fa-f]{4})$/);
 		if (grsMatch) {
-			const params = grsMatch[1];
-			// Parse GRS parameters here
-
+			this._recordSize = parseInt(grsMatch[1], 16);
 			return true;
 		}
 		return false;
@@ -1055,9 +1096,7 @@ export class SwiCCSink {
 	_handleRecCommand(message) {
 		const recMatch = message.match(/^\+REC\s+([0-9A-Fa-f]{1})$/);
 		if (recMatch) {
-			const params = recMatch[1];
-			// Parse REC parameters here
-
+			this._isRecording = (recMatch[1] === '1');
 			return true;
 		}
 		return false;
@@ -1072,9 +1111,11 @@ export class SwiCCSink {
 	_handleGrCommand(message) {
 		const grMatch = message.match(/^\+GR\s+([0-9A-Fa-f]{1})$/);
 		if (grMatch) {
-			const params = grMatch[1];
-			// Parse GR parameters here
-
+			const status = grMatch[1];
+			// We can dispatch this to a dedicated callback or custom event
+			if (this.onRecordingStatus) {
+				this.onRecordingStatus(status === '1'); // true = more pending, false = done
+			}
 			return true;
 		}
 		return false;
@@ -1086,12 +1127,15 @@ export class SwiCCSink {
 	 * @param {string} message
 	 * @returns {boolean} true if this was a R message, false otherwise
 	 */
-	_handleGrCommand(message) {
-		const grMatch = message.match(/^\+R\s+([0-9A-Fa-f]{18})x([0-9A-Fa-f]{2})$/);
-		if (grMatch) {
-			const params = grMatch[1];
-			// Parse GR parameters here
-
+	_handleRCommand(message) {
+		const rMatch = message.match(/^\+R\s+([0-9A-Fa-f]{18})x([0-9A-Fa-f]{2})$/);
+		if (rMatch) {
+			const hexPayload = rMatch[1];
+			const rleCount = parseInt(rMatch[2], 16);
+			
+			if (this.onRecordingData) {
+				this.onRecordingData(hexPayload, rleCount);
+			}
 			return true;
 		}
 		return false;

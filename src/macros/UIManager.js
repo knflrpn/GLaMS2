@@ -53,6 +53,13 @@ export class UIManager {
 			macroDuration: document.getElementById('macroDuration'),
 			macroProgress: document.getElementById('macroProgress'),
 
+			// Recording controls
+			startRecordingBtn: document.getElementById('startRecordingBtn'),
+			stopRecordingBtn: document.getElementById('stopRecordingBtn'),
+			readRecordingBtn: document.getElementById('readRecordingBtn'),
+			recordingStatus: document.getElementById('recordingStatus'),
+			recordingBufferFill: document.getElementById('recordingBufferFill'),
+			
 			// Logging
 			messageLog: document.getElementById('messageLog')
 		};
@@ -83,6 +90,15 @@ export class UIManager {
 			this.triggerCallback('clearMacro'));
 		this.elements.macroScript.addEventListener('input', () =>
 			this.triggerCallback('updateMacroInfo'));
+
+		// Recording events
+		this.elements.startRecordingBtn.addEventListener('click', () =>
+			this.triggerCallback('startRecording'));
+		this.elements.stopRecordingBtn.addEventListener('click', () =>
+			this.triggerCallback('stopRecording'));
+		this.elements.readRecordingBtn.addEventListener('click', () =>
+			this.triggerCallback('readRecording'));
+
 	}
 
 	/**
@@ -150,6 +166,7 @@ export class UIManager {
 		
 		if (!connected) {
 			this.updateDeviceInfo('-', '-', '-', '-');
+			this.updateRecordingUI(false, false, '-');
 		}
 	}
 
@@ -304,6 +321,30 @@ export class UIManager {
 	 */
 	clearMacroScript() {
 		this.elements.macroScript.value = '';
+	}
+
+	/**
+	 * Update recording UI state.
+	 * @param {boolean} isConnected - Whether SwiCC is connected
+	 * @param {boolean} isRecording - Whether recording is currently active
+	 * @param {string} bufferText - Text to display for buffer usage (e.g., "45%")
+	 * @param {boolean} isReading - Whether data is currently being fetched
+	 */
+	updateRecordingUI(isConnected, isRecording, bufferText = '-', isReading = false) {
+		// Toggle button states based on connection, recording, and reading status
+		this.elements.startRecordingBtn.disabled = !isConnected || isRecording || isReading;
+		this.elements.stopRecordingBtn.disabled = !isConnected || !isRecording || isReading;
+		
+		// Only allow reading data when connected, not actively recording, and not currently reading
+		this.elements.readRecordingBtn.disabled = !isConnected || isRecording || isReading;
+
+		// Update text displays to reflect the reading state
+		let statusText = 'Stopped';
+		if (isRecording) statusText = 'Recording...';
+		else if (isReading) statusText = 'Reading Data...';
+		
+		this.elements.recordingStatus.textContent = statusText;
+		this.elements.recordingBufferFill.textContent = bufferText;
 	}
 
 	/**

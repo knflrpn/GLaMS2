@@ -8,26 +8,133 @@ import { ControllerState } from '../core/ControllerState.js';
 
 export class MacroParser {
 	/**
-	 * Parse a macro script text into an array of ControllerState frames.
-	 * @param {string} scriptText - The macro script text
-	 * @returns {ControllerState[]} Array of controller states
-	 * @throws {Error} If parsing fails
-	 */
+		 * Parse a macro script text into an array of ControllerState frames.
+		 * @param {string} scriptText - The macro script text
+		 * @returns {ControllerState[]} Array of controller states
+		 * @throws {Error} If parsing fails
+		 */
 	static parseScript(scriptText) {
-		const lines = scriptText.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-		const frames = [];
+		const rawLines = scriptText.split('\n');
 
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i];
-			try {
-				const parsedFrames = this.parseLine(line);
-				frames.push(...parsedFrames);
-			} catch (error) {
-				throw new Error(`Line ${i + 1}: ${error.message}`);
+		// The stack keeps track of our nested blocks. 
+		// The bottom of the stack is always the 'root' of the document.
+		const stack = [{ type: 'root', children: [] }];
+
+		// Pass 1: Build the Abstract Syntax Tree (AST)
+		for (let i = 0; i < rawLines.length; i++) {
+			let line = rawLines[i];
+
+			// Strip comments starting with ';'
+			const commentIndex = line.indexOf(';');
+			if (commentIndex !== -1) {
+				line = line.substring(0, commentIndex);
 			}
+
+			line = line.trim();
+
+			// Skip completely blank lines or lines that were only comments
+			if (line.length === 0) {
+				continue;
+			}
+
+			// 1. Check for loop start label (e.g., <foobar>)
+			const labelMatch = line.match(/^<([^>]+)>$/);
+			if (labelMatch) {
+				// Push a new loop block onto the stack
+				stack.push({
+					type: 'loop',
+					label: labelMatch[1],
+					lineNum: i + 1,
+					children: []
+				});
+				continue;
+			}
+
+			// 2. Check for loop end / jump (e.g., @foobar 5)
+			const jumpMatch = line.match(/^@(\S+)\s+(\d+)$/);
+			if (jumpMatch) {
+				const targetLabel = jumpMatch[1];
+				const count = parseInt(jumpMatch[2], 10);
+
+				if (stack.length <= 1) {
+					throw new Error(`Line ${i + 1}: Jump to '${targetLabel}' without a matching preceding label`);
+				}
+
+				// Pop the current loop block to close it
+				const currentLoop = stack.pop();
+
+				// This catches interleaved or unclosed loops immediately
+				if (currentLoop.label !== targetLabel) {
+					throw new Error(`Line ${i + 1}: Mismatched loop label. Expected '@${currentLoop.label}', found '@${targetLabel}'`);
+				}
+
+				currentLoop.count = count;
+
+				// Append the closed loop block to its parent's children
+				stack[stack.length - 1].children.push(currentLoop);
+				continue;
+			}
+
+			// 3. Standard command line
+			stack[stack.length - 1].children.push({
+				type: 'line',
+				text: line,
+				lineNum: i + 1
+			});
 		}
 
-		return frames;
+		// If there is more than just the 'root' left, a loop wasn't closed
+		if (stack.length > 1) {
+			const unclosed = stack.pop();
+			throw new Error(`Line ${unclosed.lineNum}: Unclosed loop label '<${unclosed.label}>'`);
+		}
+
+		// Pass 2: Evaluate the AST into a flat array of frames
+		const evaluateNode = (node) => {
+			const result = [];
+
+			if (node.type === 'root') {
+				for (const child of node.children) {
+					// Use a loop instead of the spread operator (...) to prevent stack overflow
+					const childFrames = evaluateNode(child);
+					for (let j = 0; j < childFrames.length; j++) {
+						result.push(childFrames[j]);
+					}
+				}
+			}
+			else if (node.type === 'loop') {
+				// Evaluate the inner body once
+				const loopBody = [];
+				for (const child of node.children) {
+					const childFrames = evaluateNode(child);
+					for (let j = 0; j < childFrames.length; j++) {
+						loopBody.push(childFrames[j]);
+					}
+				}
+
+				// Repeat the evaluated body 'count' times
+				for (let c = 0; c < node.count; c++) {
+					for (let j = 0; j < loopBody.length; j++) {
+						// Create a deep copy of the state for each frame
+						result.push(loopBody[j].clone());
+					}
+				}
+			}
+			else if (node.type === 'line') {
+				try {
+					const parsedFrames = this.parseLine(node.text);
+					for (let j = 0; j < parsedFrames.length; j++) {
+						result.push(parsedFrames[j]);
+					}
+				} catch (error) {
+					throw new Error(`Line ${node.lineNum}: ${error.message}`);
+				}
+			}
+
+			return result;
+		};
+
+		return evaluateNode(stack[0]);
 	}
 
 	/**
@@ -75,25 +182,57 @@ export class MacroParser {
 	 */
 	static parseControllerState(line) {
 		const state = new ControllerState();
+		let remainingText = line;
 
-		// Parse buttons {A B X Y}
-		const buttonMatch = line.match(/\{([^}]*)\}/);
+		// Parse buttons like {A B X Y}
+		const buttonMatch = remainingText.match(/\{([^}]*)\}/);
 		if (buttonMatch) {
 			const buttonString = buttonMatch[1].trim();
 			if (buttonString) {
 				const buttons = buttonString.split(/\s+/);
 				this.applyButtons(state, buttons);
 			}
+			// Remove the matched button segment to track leftover formatting
+			remainingText = remainingText.replace(buttonMatch[0], '');
 		}
 
-		// Parse analog values [x, y, x, y]
-		const analogMatch = line.match(/\[([^\]]*)\]/);
-		if (analogMatch) {
-			const analogString = analogMatch[1].trim();
-			if (analogString) {
-				const values = analogString.split(',').map(v => parseFloat(v.trim()));
+		// Parse exact centered 12-bit raw hardware values [[x y x y]], optional commas
+		const rawAnalogMatch = remainingText.match(/\[\[([^\]]*)\]\]/);
+		if (rawAnalogMatch) {
+			const rawString = rawAnalogMatch[1].replace(/,/g, ' ').trim();
+			if (rawString) {
+				const values = rawString.split(/\s+/).map(v => parseInt(v, 10));
+
 				if (values.length !== 4) {
-					throw new Error('Analog values must have exactly 4 numbers: [leftX, leftY, rightX, rightY]');
+					throw new Error('Raw analog values must have exactly 4 numbers: [[leftX leftY rightX rightY]]');
+				}
+
+				for (const value of values) {
+					if (isNaN(value) || value < -2048 || value > 2047) {
+						throw new Error('Raw analog values must be integers between -2048 and 2047');
+					}
+				}
+
+				// Populate exact raw state and flag it as active
+				state.rawAnalog.active = true;
+				state.rawAnalog.leftX = values[0];
+				state.rawAnalog.leftY = values[1];
+				state.rawAnalog.rightX = values[2];
+				state.rawAnalog.rightY = values[3];
+			}
+			// Remove the matched raw analog segment
+			remainingText = remainingText.replace(rawAnalogMatch[0], '');
+		}
+
+		// Parse analog values [x y x y], optional commas
+		const analogMatch = remainingText.match(/\[([^\]]*)\]/);
+		if (analogMatch) {
+			// Using regex /,/g to ensure all commas are replaced, not just the first one
+			const analogString = analogMatch[1].replace(/,/g, ' ').trim();
+			if (analogString) {
+				const values = analogString.split(/\s+/).map(v => parseFloat(v));
+				if (values.length !== 4) {
+					throw new Error('Analog values must have exactly 4 numbers: [leftX leftY rightX rightY]');
 				}
 
 				for (const value of values) {
@@ -107,6 +246,50 @@ export class MacroParser {
 				state.analog.rightX = values[2];
 				state.analog.rightY = values[3];
 			}
+			// Remove the matched analog segment to track leftover formatting
+			remainingText = remainingText.replace(analogMatch[0], '');
+		}
+
+		// Parse legacy analog values (x y x y) or (x y), optional commas
+		const legacyAnalogMatch = remainingText.match(/\(([^)]*)\)/);
+		if (legacyAnalogMatch) {
+			const legacyString = legacyAnalogMatch[1].replace(/,/g, ' ').trim();
+			if (legacyString) {
+				const values = legacyString.split(/\s+/).map(v => parseInt(v, 10));
+
+				if (values.length !== 2 && values.length !== 4) {
+					throw new Error('Legacy analog values must have exactly 2 or 4 numbers: (leftX leftY [rightX rightY])');
+				}
+
+				for (const value of values) {
+					if (isNaN(value) || value < 0 || value > 255) {
+						throw new Error('Legacy analog values must be integers between 0 and 255');
+					}
+				}
+
+				// Helper to map [0, 255] (neutral 128) to [-1.0, 1.0] (neutral 0)
+				const normalize = (v) => Math.max(-1, Math.min(1, (v - 128) / 127));
+
+				state.analog.leftX = normalize(values[0]);
+				state.analog.leftY = normalize(values[1]);
+
+				if (values.length === 4) {
+					state.analog.rightX = normalize(values[2]);
+					state.analog.rightY = normalize(values[3]);
+				} else {
+					// Default missing right stick values to neutral (0 in the [-1, 1] system)
+					state.analog.rightX = 0;
+					state.analog.rightY = 0;
+				}
+			}
+			// Remove the matched legacy analog segment
+			remainingText = remainingText.replace(legacyAnalogMatch[0], '');
+		}
+
+		// If there is any leftover text that wasn't a valid component, throw an error
+		remainingText = remainingText.trim();
+		if (remainingText.length > 0) {
+			throw new Error(`Invalid syntax or unexpected text: '${remainingText}'`);
 		}
 
 		return state;
@@ -161,5 +344,4 @@ export class MacroParser {
 			shoulders: ['L1', 'L2', 'L3', 'R1', 'R2', 'R3']
 		};
 	}
-
 }

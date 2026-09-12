@@ -22,13 +22,14 @@ import { KeyboardSticks } from './KeyboardSticks.js';
 import { Sticky } from './Sticky.js';
 import { Toggle } from './Toggle.js';
 import { AnalogScale } from './AnalogScale.js';
+import { RandomInput } from './RandomInputs.js';
 
 /**
  * @typedef {Object} BroadcastConfig
  * @property {boolean} [enabled=true] - Whether broadcasting is enabled
  * @property {string} [channelName='swicc-controller'] - Name of the broadcast channel
  * @property {number} [innerSnapshotPosition=0] - Pipeline position for inner highlighting (0-based)
- * @property {number} [outerSnapshotPosition=10] - Pipeline position for outer highlighting (0-based)
+ * @property {number} [outerSnapshotPosition=12] - Pipeline position for outer highlighting (0-based)
  */
 
 /**
@@ -45,6 +46,7 @@ export class ManipulatorPipeline {
 		Cooldown,
 		A2D,
 		D2A,
+		RandomInput,
 		ChatCommand,
 		StringControl,
 		MouseControl,
@@ -76,7 +78,7 @@ export class ManipulatorPipeline {
 			enabled: broadcastConfig.enabled !== false,
 			channelName: broadcastConfig.channelName || 'swicc-controller',
 			innerSnapshotPosition: broadcastConfig.innerSnapshotPosition ?? 0,
-			outerSnapshotPosition: broadcastConfig.outerSnapshotPosition ?? 10,
+			outerSnapshotPosition: broadcastConfig.outerSnapshotPosition ?? 12,
 		};
 
 		// Initialize broadcast channel if enabled

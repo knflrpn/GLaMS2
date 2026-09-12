@@ -88,7 +88,7 @@ export class BroadcastManager {
 		}
 
 		if (outerSnapshotPosition) {
-			outerSnapshotPosition.value = config.outerSnapshotPosition || 10;
+			outerSnapshotPosition.value = config.outerSnapshotPosition || 20;
 		}
 	}
 
@@ -99,7 +99,7 @@ export class BroadcastManager {
 		const defaultConfig = {
 			enabled: false,
 			innerSnapshotPosition: 0,
-			outerSnapshotPosition: 10
+			outerSnapshotPosition: 20
 		};
 
 		this.updateUIFromConfig(defaultConfig);
@@ -111,7 +111,7 @@ export class BroadcastManager {
 	 */
 	handleInnerPositionChange() {
 		const innerPos = parseInt(this.uiManager.getInputValue('innerSnapshotPosition')) || 0;
-		const outerPos = parseInt(this.uiManager.getInputValue('outerSnapshotPosition')) || 10;
+		const outerPos = parseInt(this.uiManager.getInputValue('outerSnapshotPosition')) || 20;
 
 		this.updateSnapshotIndicators();
 	}
@@ -121,7 +121,7 @@ export class BroadcastManager {
 	 */
 	handleOuterPositionChange() {
 		const innerPos = parseInt(this.uiManager.getInputValue('innerSnapshotPosition')) || 0;
-		const outerPos = parseInt(this.uiManager.getInputValue('outerSnapshotPosition')) || 10;
+		const outerPos = parseInt(this.uiManager.getInputValue('outerSnapshotPosition')) || 20;
 
 		this.updateSnapshotIndicators();
 	}
@@ -133,7 +133,7 @@ export class BroadcastManager {
 		try {
 			const enabled = document.getElementById('broadcastEnabled')?.checked || false;
 			const innerPos = parseInt(this.uiManager.getInputValue('innerSnapshotPosition')) || 0;
-			const outerPos = parseInt(this.uiManager.getInputValue('outerSnapshotPosition')) || 10;
+			const outerPos = parseInt(this.uiManager.getInputValue('outerSnapshotPosition')) || 20;
 
 			// Update pipeline settings
 			this.pipeline.setBroadcastEnabled(enabled);
@@ -304,7 +304,7 @@ export class BroadcastManager {
 			return this.pipeline.getBroadcastConfig();
 		} catch (error) {
 			this.uiManager.logMessage(`Error getting broadcast config: ${error.message}`);
-			return { enabled: false, innerSnapshotPosition: 0, outerSnapshotPosition: 10 };
+			return { enabled: false, innerSnapshotPosition: 0, outerSnapshotPosition: 20 };
 		}
 	}
 
@@ -376,7 +376,7 @@ export class BroadcastManager {
 			const defaultConfig = {
 				enabled: false,
 				innerSnapshotPosition: 0,
-				outerSnapshotPosition: 10
+				outerSnapshotPosition: 20
 			};
 
 			this.updateUIFromConfig(defaultConfig);
@@ -410,7 +410,7 @@ export class BroadcastManager {
 			return {
 				enabled: false,
 				innerPosition: 0,
-				outerPosition: 10,
+				outerPosition: 20,
 				displayWindowOpen: false,
 				indicatorsVisible: false,
 				positionRange: 0
@@ -448,7 +448,7 @@ export class BroadcastManager {
 	updatePositionConstraints() {
 		try {
 			const manipulators = this.pipeline.getManipulators();
-			const maxPosition = 10;
+			const maxPosition = 20;
 
 			const innerInput = document.getElementById('innerSnapshotPosition');
 			const outerInput = document.getElementById('outerSnapshotPosition');

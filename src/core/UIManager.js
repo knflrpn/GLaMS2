@@ -75,7 +75,7 @@ export class UIManager {
 
 			// External control elements
 			browserMessagingStatus: document.getElementById('browserMessagingStatus'),
-			websocketStatus: document.getElementById('websocketStatus'),
+			//websocketStatus: document.getElementById('websocketStatus'),
 			externalControlStats: document.getElementById('externalControlStats'),
 			roomNameInput: document.getElementById('roomNameInput'),
 			connectExternalBtn: document.getElementById('connectExternalBtn'),

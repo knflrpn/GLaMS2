@@ -221,7 +221,6 @@
 			font-size: 22px;
 			font-weight: 800;
 			color: var(--accent);
-			text-shadow: 0 2px 8px rgba(138, 180, 255, .25)
 		}
 
 		.controls {
@@ -244,13 +243,11 @@
 			font-size: 16px;
 			background: linear-gradient(135deg, #3b82f6, #8b5cf6);
 			color: #fff;
-			box-shadow: 0 14px 38px rgba(99, 102, 241, .35);
 			transition: transform .15s ease, box-shadow .15s ease, opacity .15s ease;
 		}
 
 		button.btn:hover:not(:disabled) {
 			transform: translateY(-2px);
-			box-shadow: 0 20px 50px rgba(99, 102, 241, .45);
 		}
 
 		button.btn:disabled {
@@ -260,16 +257,51 @@
 
 		.btn.secondary {
 			background: linear-gradient(135deg, #64748b, #475569);
-			box-shadow: 0 14px 38px rgba(100, 116, 139, 0.35);
-		}
-
-		.btn.secondary:hover:not(:disabled) {
-			box-shadow: 0 20px 50px rgba(100, 116, 139, 0.45);
 		}
 
 		.noSeg {
 			text-align: center;
 			opacity: .7
+		}
+
+		.recently-removed-section {
+			width: min(92vw, 900px);
+		}
+
+		.removed-items {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.removed-item {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			background: rgba(0, 0, 0, 0.3);
+			border: 1px solid var(--glassBorder);
+			border-radius: 8px;
+			padding: 8px 12px;
+			font-size: 14px;
+		}
+
+		.removed-item-name {
+			opacity: 0.9;
+		}
+
+		.readd-btn {
+			background: linear-gradient(135deg, #22c55e, #16a34a);
+			color: white;
+			border: none;
+			border-radius: 6px;
+			padding: 4px 8px;
+			font-size: 12px;
+			cursor: pointer;
+			font-weight: 600;
+		}
+
+		.readd-btn:hover {
+			transform: translateY(-1px);
 		}
 	</style>
 </head>
@@ -316,12 +348,27 @@
 				<button class="btn" id="executeBtn" disabled>Execute Actions</button>
 				<button class="btn" id="stopBtn">Stop Actions</button>
 				<button class="btn" id="removeBtn" disabled>Remove Option</button>
+				<button class="btn" id="nextBtn">Next</button>
+				<button class="btn" id="prevBtn">Prev</button>
 			</div>
 		</div>
 
 		<div class="noSeg" id="noSeg" style="display:none">No segments configured</div>
 
+		<div class="recently-removed-section" id="recentlyRemovedSection" style="display:none;">
+			<div class="config-section">
+				<h3>Recently Removed</h3>
+				<div class="removed-items" id="removedItems"></div>
+			</div>
+		</div>
+
 		<div class="config-section">
+			<h3>Add New Segment (no action)</h3>
+			<div class="config-controls">
+				<input type="text" id="newSegmentInput" placeholder="Enter segment name..."
+					style="flex: 1; background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glassBorder); border-radius: 8px; padding: 12px; color: #fff; font-size: 14px; margin-right: 12px;">
+				<button class="btn secondary" id="addSegmentBtn">Add Segment</button>
+			</div>
 			<h3>Configuration</h3>
 			<textarea id="configTextarea" class="config-textarea"
 				placeholder="Enter JSON configuration here..."></textarea>

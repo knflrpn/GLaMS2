@@ -104,7 +104,7 @@
 								<button class="button danger" id="disconnectBtn3" disabled>
 									Disconnect
 								</button>
-								<button class="button secondary" id="pauseBtn4" disabled>
+								<button class="button secondary" id="pauseBtn3" disabled>
 									Pause
 								</button>
 							</div>
@@ -209,15 +209,17 @@
 						<div class="room-controls">
 							<div class="function-enables">
 								<label class="checkbox-label">
-									<input type="checkbox" id="enableBrowserMessaging">
+									<input type="checkbox" id="enableBrowserMessaging" checked="true">
 									<span class="checkmark"></span>
 									Browser Messaging
 								</label>
+								<!--
 								<label class="checkbox-label">
 									<input type="checkbox" id="enableWebSocket">
 									<span class="checkmark"></span>
 									WebSocket
 								</label>
+								-->
 							</div>
 							<input type="text" id="roomNameInput" placeholder="Enter room name..." maxlength="50">
 							<button class="button" id="connectExternalBtn" disabled>Connect to Room</button>
@@ -234,10 +236,12 @@
 								<span class="connection-status disconnected"
 									id="browserMessagingStatus">Disconnected</span>
 							</div>
+							<!--
 							<div>
 								<span class="status-label">WebSocket: </span>
 								<span class="connection-status disconnected" id="websocketStatus">Disconnected</span>
 							</div>
+							-->
 						</div>
 					</div>
 
@@ -314,14 +318,14 @@
 							<div class="snapshot-control-group">
 								<div class="position-input-group">
 									<span class="position-label">Pipeline position for inner highlighting: </span>
-									<input type="number" id="innerSnapshotPosition" value="0" min="0" max="10">
+									<input type="number" id="innerSnapshotPosition" value="0" min="0" max="20">
 								</div>
 							</div>
 
 							<div class="snapshot-control-group">
 								<div class="position-input-group">
 									<span class="position-label">Pipeline position for outer highlighting: </span>
-									<input type="number" id="outerSnapshotPosition" value="10" min="0" max="10">
+									<input type="number" id="outerSnapshotPosition" value="12" min="0" max="20">
 								</div>
 							</div>
 						</div>

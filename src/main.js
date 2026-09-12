@@ -81,7 +81,7 @@ class SwiCCApplication {
 
 		this.managers.ui?.logMessage('Core components created');
 	}
-	
+
 	/**
 	 * Create all managers
 	 */
@@ -227,7 +227,7 @@ class SwiCCApplication {
 
 		this.managers.ui?.logMessage(`Now using Controller #${newIndex + 1}`);
 	}
-	
+
 	/**
 	 * Update gamepad status with caching for performance
 	 */

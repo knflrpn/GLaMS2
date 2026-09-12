@@ -234,13 +234,14 @@ export class InputDelay extends BaseManipulator {
 
 		// If we have a state to output, use it
 		if (outputState) {
-			this.lastOutputState = outputState;
+			// make a copy of the state in case it needs to be repeated next time
+			this.lastOutputState = outputState.clone();
 			return outputState;
 		} else if (this.lastOutputState) {
-			// Use the last valid output state if we have one
-			return this.lastOutputState;
+			// Use the last valid output state if needed
+			return this.lastOutputState.clone();
 		} else {
-			// Only return neutral state if we've never had a valid output
+			// Only return neutral state if there's never been a valid input/output
 			const neutralState = state.clone();
 			
 			// Clear all digital inputs
@@ -277,7 +278,7 @@ export class InputDelay extends BaseManipulator {
 		this._delaySlider.type = 'range';
 		this._delaySlider.min = '0';
 		this._delaySlider.max = '2';
-		this._delaySlider.step = '0.2';
+		this._delaySlider.step = '0.05';
 		this._delaySlider.value = this.delay;
 		this._delaySlider.className = 'delay-slider';
 
